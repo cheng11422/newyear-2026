@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>2026 新年粒子烟花</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Microsoft YaHei', sans-serif;
+        }
+        canvas {
+            display: block;
+        }
+        /* 加载提示 */
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 20px;
+            opacity: 0.8;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+<div class="loading" id="loading">加载中...</div>
+
+<script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const loading = document.getElementById('loading');
+    
+    let width = canvas.width = window.innerWidth;
+    let height = canvas.height = window.innerHeight;
+    
+    // 配置
+    const particleSize = 3;
+    const particleGap = 6;
+    
+    let particles = [];
+    let fireworks = [];
+    
+    // 完整的新年祝福语序列 - 我帮你安排好时间了
+    const textSequence = [
+        // 第一阶段：倒计时和新年到来 (8秒)
+        { text: "再见 2025", time: 2500 },
+        { text: "3", time: 800 },
+        { text: "2", time: 800 },
+        { text: "1", time: 800 },
+        { text: "2026", time: 3000 },
+        
+        // 第二阶段：核心祝福 (35秒)
+        { text: "新年快乐", time: 3500 },
+        { text: "万事如意", time: 3000 },
+        { text: "身体健康", time: 3000 },
+        { text: "心想事成", time: 3000 },
+        { text: "财源广进", time: 3000 },
+        { text: "阖家幸福", time: 3000 },
+        { text: "笑口常开", time: 3000 },
+        { text: "好运连连", time: 3000 },
+        
+        // 第三阶段：特别祝福 (28秒)
+        { text: "一岁一礼", time: 3000 },
+        { text: "一寸欢喜", time: 3000 },
+        { text: "平安喜乐", time: 3000 },
+        { text: "得偿所愿", time: 3000 },
+        { text: "前程似锦", time: 3000 },
+        { text: "龙年大吉", time: 3000 },
+        { text: "福气满满", time: 3000 },
+        
+        // 第四阶段：温馨祝福 (21秒)
+        { text: "天天开心", time: 3000 },
+        { text: "岁岁平安", time: 3000 },
+        { text: "四季发财", time: 3000 },
+        { text: "五福临门", time: 3000 },
+        { text: "六六大顺", time: 3000 },
+        { text: "七星高照", time: 3000 },
+        
+        // 第五阶段：长句祝福 (24秒)
+        { text: "愿新年胜旧年", time: 3500 },
+        { text: "愿将来胜过往", time: 3500 },
+        { text: "愿你所求皆如愿", time: 3500 },
+        { text: "愿你前行皆坦途", time: 3500 },
+        { text: "愿你多喜乐长安宁", time: 3500 },
+        { text: "2026一切顺利", time: 3500 },
+        
+        // 循环回到开始
+        { text: "新年快乐", time: 5000 }
+    ];
+    
+    // 总时长约 116 秒，不到2分钟一个完整循环
+    
+    let currentStep = 0;
+    let lastStepTime = Date.now();
+    let isInitialized = false;
+
+    // 调整窗口大小
+    window.addEventListener('resize', () => {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+        if (isInitialized) {
+            updateParticles(textSequence[currentStep].text);
+        }
+    });
+
+    // --- 粒子系统（文字）---
+    
+    class Particle {
+        constructor(x, y) {
+            this.x = Math.random() * width;
+            this.y = Math.random() * height;
+            this.targetX = x;
+            this.targetY = y;
+            this.vx = Math.random() * 2 - 1;
+            this.vy = Math.random() * 2 - 1;
+            this.color = `hsl(${Math.random() * 60 + 180}, 100%, 80%)`;
+            this.size = particleSize;
+            this.friction = 0.88 + Math.random() * 0.1;
+        }
+        
+        update() {
+            // 向目标移动
+            const dx = this.targetX - this.x;
+            const dy = this.targetY - this.y;
+            
+            // 缓动效果
+            this.x += dx * 0.08;
+            this.y += dy * 0.08;
+            
+            // 随机微动
+            this.vx *= this.friction;
+            this.vy *= this.friction;
+            this.x += this.vx;
+            this.y += this.vy;
+            
+            // 边界反弹
+            if (this.x < 0 || this.x > width) this.vx *= -0.8;
+            if (this.y < 0 || this.y > height) this.vy *= -0.8;
+        }
+        
+        draw() {
+            ctx.fillStyle = this.color;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
+    // --- 烟花系统（背景）---
+    
+    class FireworkParticle {
+        constructor(x, y, color) {
+            this.x = x;
+            this.y = y;
+            this.angle = Math.random() * Math.PI * 2;
+            this.speed = Math.random() * 4 + 2;
+            this.friction = 0.92;
+            this.gravity = 0.07;
+            this.alpha = 1;
+            this.color = color;
+            this.vx = Math.cos(this.angle) * this.speed;
+            this.vy = Math.sin(this.angle) * this.speed;
+            this.size = Math.random() * 2 + 1;
+        }
+
+        update() {
+            this.vx *= this.friction;
+            this.vy *= this.friction;
+            this.vy += this.gravity;
+            this.x += this.vx;
+            this.y += this.vy;
+            this.alpha -= 0.015;
+            this.size *= 0.99;
+        }
+
+        draw() {
+            ctx.globalAlpha = this.alpha;
+            ctx.fillStyle = this.color;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1;
+        }
+    }
+
+    class Firework {
+        constructor() {
+            this.x = Math.random() * width;
+            this.y = height + 20;
+            this.targetY = Math.random() * (height / 2.5) + 50;
+            this.speed = Math.random() * 4 + 5;
+            this.color = `hsl(${Math.random() * 360}, 100%, 60%)`;
+            this.exploded = false;
+            this.particles = [];
+            this.trail = [];
+            this.size = 3;
+        }
+
+        update() {
+            if (!this.exploded) {
+                // 添加轨迹
+                this.trail.push({x: this.x, y: this.y});
+                if (this.trail.length > 8) this.trail.shift();
+                
+                this.y -= this.speed;
+                if (this.y <= this.targetY) {
+                    this.explode();
+                }
+            } else {
+                for (let i = this.particles.length - 1; i >= 0; i--) {
+                    this.particles[i].update();
+                    if (this.particles[i].alpha <= 0) {
+                        this.particles.splice(i, 1);
+                    }
+                }
+            }
+        }
+
+        explode() {
+            this.exploded = true;
+            const particleCount = Math.random() * 40 + 80; // 80-120个粒子
+            for (let i = 0; i < particleCount; i++) {
+                this.particles.push(new FireworkParticle(this.x, this.y, this.color));
+            }
+        }
+
+        draw() {
+            if (!this.exploded) {
+                // 绘制轨迹
+                for (let i = 0; i < this.trail.length; i++) {
+                    const alpha = i / this.trail.length * 0.7;
+                    ctx.globalAlpha = alpha;
+                    ctx.fillStyle = this.color;
+                    ctx.beginPath();
+                    ctx.arc(this.trail[i].x, this.trail[i].y, this.size * (i/this.trail.length), 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.globalAlpha = 1;
+                
+                // 绘制烟花头
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            } else {
+                this.particles.forEach(p => p.draw());
+            }
+        }
+    }
+
+    // --- 文字处理 ---
+    
+    function createTextParticles(text) {
+        const offCanvas = document.createElement('canvas');
+        const offCtx = offCanvas.getContext('2d');
+        offCanvas.width = width;
+        offCanvas.height = height;
+        
+        let fontSize = 150;
+        if (text.length > 4) fontSize = 100;
+        if (text.length > 6) fontSize = 80;
+        if (window.innerWidth < 600) fontSize *= 0.6;
+
+        offCtx.font = `bold ${fontSize}px "Microsoft YaHei", sans-serif`;
+        offCtx.fillStyle = 'white';
+        offCtx.textAlign = 'center';
+        offCtx.textBaseline = 'middle';
+        offCtx.fillText(text, width / 2, height / 2);
+        
+        const imageData = offCtx.getImageData(0, 0, width, height).data;
+        const newTargets = [];
+        
+        for (let y = 0; y < height; y += particleGap) {
+            for (let x = 0; x < width; x += particleGap) {
+                const index = (y * width + x) * 4;
+                const alpha = imageData[index + 3];
+                
+                if (alpha > 128) {
+                    newTargets.push({ x, y });
+                }
+            }
+        }
+        
+        return newTargets;
+    }
+
+    function updateParticles(text) {
+        const targets = createTextParticles(text);
+        
+        // 确保粒子数量匹配
+        if (targets.length > particles.length) {
+            const numToAdd = targets.length - particles.length;
+            for (let i = 0; i < numToAdd; i++) {
+                particles.push(new Particle(width / 2, height / 2));
+            }
+        }
+        
+        // 分配新目标
+        for (let i = 0; i < Math.min(particles.length, targets.length); i++) {
+            particles[i].targetX = targets[i].x;
+            particles[i].targetY = targets[i].y;
+            
+            // 根据文字序号改变颜色主题
+            const hue = (currentStep * 30) % 360;
+            particles[i].color = `hsl(${hue + Math.random() * 20}, 100%, 70%)`;
+        }
+        
+        // 移除多余粒子
+        if (targets.length < particles.length) {
+            particles.splice(targets.length);
+        }
+    }
+
+    // --- 主循环 ---
+    
+    function animate() {
+        // 淡出效果
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+        ctx.fillRect(0, 0, width, height);
+        
+        // 1. 处理文字切换
+        const now = Date.now();
+        const currentConfig = textSequence[currentStep];
+        
+        if (now - lastStepTime > currentConfig.time) {
+            currentStep = (currentStep + 1) % textSequence.length;
+            lastStepTime = now;
+            updateParticles(textSequence[currentStep].text);
+            
+            // 文字切换时发射更多烟花
+            for (let i = 0; i < 3; i++) {
+                setTimeout(() => {
+                    fireworks.push(new Firework());
+                }, i * 200);
+            }
+        }
+
+        // 2. 绘制文字粒子
+        particles.forEach(p => {
+            p.update();
+            p.draw();
+        });
+
+        // 3. 随机生成背景烟花（概率根据文字类型调整）
+        let spawnChance = 0.03;
+        if (textSequence[currentStep].text.includes("2026") || 
+            textSequence[currentStep].text.includes("快乐")) {
+            spawnChance = 0.06; // 重要时刻烟花更多
+        }
+        
+        if (Math.random() < spawnChance) {
+            fireworks.push(new Firework());
+        }
+        
+        // 4. 更新和绘制烟花
+        for (let i = fireworks.length - 1; i >= 0; i--) {
+            fireworks[i].update();
+            fireworks[i].draw();
+            
+            // 移除完成的烟花
+            if (fireworks[i].exploded && fireworks[i].particles.length === 0) {
+                fireworks.splice(i, 1);
+            }
+        }
+
+        // 5. 显示当前文字提示（调试用）
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+        ctx.font = '14px Arial';
+        ctx.textAlign = 'right';
+        ctx.fillText(`${currentStep+1}/${textSequence.length}`, width - 20, height - 20);
+
+        requestAnimationFrame(animate);
+    }
+
+    // --- 初始化 ---
+    function init() {
+        loading.style.display = 'none';
+        updateParticles(textSequence[0].text);
+        isInitialized = true;
+        
+        // 初始烟花
+        for (let i = 0; i < 5; i++) {
+            setTimeout(() => {
+                fireworks.push(new Firework());
+            }, i * 300);
+        }
+        
+        animate();
+    }
+
+    // 页面加载后开始
+    window.addEventListener('load', () => {
+        setTimeout(init, 500);
+    });
+
+</script>
+</body>
+</html>
