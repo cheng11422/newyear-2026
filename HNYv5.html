@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>2026 新年烟花</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #000;
+            font-family: 'Microsoft YaHei', sans-serif;
+        }
+        canvas {
+            display: block;
+            cursor: pointer;
+        }
+        /* 简单的音乐时间显示 */
+        .time-display {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            color: rgba(255,255,255,0.6);
+            font-size: 12px;
+            background: rgba(0,0,0,0.5);
+            padding: 5px 10px;
+            border-radius: 5px;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+<div class="time-display" id="timeDisplay">音乐: 00:00 / 02:50</div>
+
+<script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const timeDisplay = document.getElementById('timeDisplay');
+    
+    let width = canvas.width = window.innerWidth;
+    let height = canvas.height = window.innerHeight;
+    
+    // 配置
+    const particleSize = 3;
+    const particleGap = 6;
+    
+    let particles = [];
+    let fireworks = [];
+    let musicStarted = false;
+    
+    // 祝福语
+    const textSequence = [
+        { text: "再见 2025", time: 2500 },
+        { text: "3", time: 1000 },
+        { text: "2", time: 1000 },
+        { text: "1", time: 1000 },
+        { text: "2026", time: 3500 },
+        { text: "新年快乐", time: 3500 },
+        { text: "万事如意", time: 3000 },
+        { text: "身体健康", time: 3000 },
+        { text: "心想事成", time: 3000 },
+        { text: "财源广进", time: 3000 },
+        { text: "阖家幸福", time: 3000 },
+        { text: "笑口常开", time: 3000 },
+        { text: "好运连连", time: 3000 },
+        { text: "2026 一切顺利", time: 4000 },
+        { text: "新年快乐", time: 5000 }
+    ];
+    
+    let currentStep = 0;
+    let lastStepTime = Date.now();
+    let isInitialized = false;
+
+    // ====== 音乐系统 ======
+    // 替换成你自己的音乐文件名
+    const YOUR_MUSIC_FILE = 'newyear-song.mp3'; // 改成你的文件名
+    
+    // 创建音频
+    const bgMusic = new Audio(`https://raw.githubusercontent.com/cheng11422/newyear-2026/main/${YOUR_MUSIC_FILE}`);
+    bgMusic.volume = 0.7;
+    
+    // 音乐停止时间：2分50秒 = 170秒
+    const MUSIC_STOP_TIME = 170; // 单位：秒
+    
+    let musicCheckInterval;
+    
+    // 检查音乐时间，超过2:50就暂停
+    function checkMusicTime() {
+        if (!bgMusic.paused && bgMusic.currentTime >= MUSIC_STOP_TIME) {
+            bgMusic.pause();
+            bgMusic.currentTime = 0; // 重置到开头
+            clearInterval(musicCheckInterval);
+            timeDisplay.textContent = "音乐已停止 (02:50)";
+        }
+        
+        // 更新时间显示
+        const current = Math.floor(bgMusic.currentTime);
+        const minutes = Math.floor(current / 60);
+        const seconds = current % 60;
+        const timeStr = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        timeDisplay.textContent = `音乐: ${timeStr} / 02:50`;
+    }
+    
+    // 播放音乐的函数
+    function playMusic() {
+        if (musicStarted) return;
+        
+        bgMusic.play().then(() => {
+            musicStarted = true;
+            console.log('音乐开始播放');
+            
+            // 每0.5秒检查一次时间
+            musicCheckInterval = setInterval(checkMusicTime, 500);
+            
+        }).catch((error) => {
+            console.log('播放失败:', error);
+            timeDisplay.textContent = "点击播放音乐";
+        });
+    }
+    
+    // 页面加载后尝试播放
+    window.addEventListener('load', function() {
+        console.log('页面加载完成');
+        
+        // 预加载音乐
+        bgMusic.load();
+        
+        // 延迟后尝试播放
+        setTimeout(() => {
+            playMusic();
+        }, 800);
+    });
+    
+    // 点击屏幕播放音乐
+    canvas.addEventListener('click', function(e) {
+        if (!musicStarted) {
+            playMusic();
+        }
+        
+        // 点击位置放烟花
+        createFirework(e.clientX, e.clientY);
+    });
+    
+    // 烟花音效
+    const fireSound = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-firework-explosion-3097.mp3');
+    fireSound.volume = 0.3;
+    
+    // ====== 烟花系统 ======
+    
+    window.addEventListener('resize', () => {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+        if (isInitialized) updateParticles(textSequence[currentStep].text);
+    });
+
+    class Particle {
+        constructor(x, y) {
+            this.x = Math.random() * width;
+            this.y = Math.random() * height;
+            this.targetX = x;
+            this.targetY = y;
+            this.color = `hsl(${(currentStep * 30) % 360}, 100%, 70%)`;
+            this.size = particleSize;
+        }
+        
+        update() {
+            const dx = this.targetX - this.x;
+            const dy = this.targetY - this.y;
+            this.x += dx * 0.08;
+            this.y += dy * 0.08;
+        }
+        
+        draw() {
+            ctx.fillStyle = this.color;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
+    class Firework {
+        constructor(x, y) {
+            this.x = x || Math.random() * width;
+            this.y = y || height;
+            this.targetY = Math.random() * (height / 2);
+            this.speed = Math.random() * 3 + 4;
+            this.color = `hsl(${Math.random() * 360}, 100%, 60%)`;
+            this.particles = [];
+            this.exploded = false;
+        }
+
+        update() {
+            if (!this.exploded) {
+                this.y -= this.speed;
+                if (this.y <= this.targetY) {
+                    this.explode();
+                    // 播放音效
+                    if (musicStarted) {
+                        fireSound.currentTime = 0;
+                        fireSound.play().catch(() => {});
+                    }
+                }
+            } else {
+                this.particles.forEach(p => {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.vy += 0.05;
+                    p.alpha -= 0.02;
+                });
+                this.particles = this.particles.filter(p => p.alpha > 0);
+            }
+        }
+
+        explode() {
+            this.exploded = true;
+            for (let i = 0; i < 60; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 4 + 2;
+                this.particles.push({
+                    x: this.x,
+                    y: this.y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    color: this.color,
+                    alpha: 1,
+                    size: Math.random() * 2 + 1
+                });
+            }
+        }
+
+        draw() {
+            if (!this.exploded) {
+                ctx.fillStyle = this.color;
+                ctx.fillRect(this.x, this.y, 3, 10);
+            } else {
+                this.particles.forEach(p => {
+                    ctx.globalAlpha = p.alpha;
+                    ctx.fillStyle = p.color;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+                ctx.globalAlpha = 1;
+            }
+        }
+    }
+
+    function createFirework(x, y) {
+        fireworks.push(new Firework(x, y));
+    }
+
+    // ====== 文字系统 ======
+    function createTextParticles(text) {
+        const offCanvas = document.createElement('canvas');
+        const offCtx = offCanvas.getContext('2d');
+        offCanvas.width = width;
+        offCanvas.height = height;
+        
+        let fontSize = Math.min(150, width / 8);
+        if (text.length > 4) fontSize *= 0.7;
+
+        offCtx.font = `bold ${fontSize}px Microsoft YaHei`;
+        offCtx.fillStyle = 'white';
+        offCtx.textAlign = 'center';
+        offCtx.textBaseline = 'middle';
+        offCtx.fillText(text, width / 2, height / 2);
+        
+        const imageData = offCtx.getImageData(0, 0, width, height).data;
+        const targets = [];
+        
+        for (let y = 0; y < height; y += particleGap) {
+            for (let x = 0; x < width; x += particleGap) {
+                const index = (y * width + x) * 4;
+                if (imageData[index + 3] > 128) {
+                    targets.push({ x, y });
+                }
+            }
+        }
+        
+        return targets;
+    }
+
+    function updateParticles(text) {
+        const targets = createTextParticles(text);
+        
+        if (targets.length > particles.length) {
+            for (let i = particles.length; i < targets.length; i++) {
+                particles.push(new Particle(width / 2, height / 2));
+            }
+        }
+        
+        particles.forEach((p, i) => {
+            if (targets[i]) {
+                p.targetX = targets[i].x;
+                p.targetY = targets[i].y;
+                p.color = `hsl(${(currentStep * 30) % 360}, 100%, 70%)`;
+            }
+        });
+        
+        if (targets.length < particles.length) {
+            particles.splice(targets.length);
+        }
+    }
+
+    // ====== 主循环 ======
+    function animate() {
+        // 淡出效果
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+        ctx.fillRect(0, 0, width, height);
+        
+        // 更新文字
+        const now = Date.now();
+        if (now - lastStepTime > textSequence[currentStep].time) {
+            currentStep = (currentStep + 1) % textSequence.length;
+            lastStepTime = now;
+            updateParticles(textSequence[currentStep].text);
+            
+            // 切换文字时放烟花
+            for (let i = 0; i < 3; i++) {
+                setTimeout(() => createFirework(), i * 200);
+            }
+        }
+        
+        // 更新粒子
+        particles.forEach(p => {
+            p.update();
+            p.draw();
+        });
+        
+        // 更新烟花
+        fireworks.forEach(f => {
+            f.update();
+            f.draw();
+        });
+        
+        // 随机烟花
+        if (Math.random() < 0.03) {
+            createFirework();
+        }
+        
+        // 清理完成的烟花
+        fireworks = fireworks.filter(f => !f.exploded || f.particles.length > 0);
+        
+        requestAnimationFrame(animate);
+    }
+
+    // ====== 初始化 ======
+    function init() {
+        updateParticles(textSequence[0].text);
+        isInitialized = true;
+        
+        // 初始烟花
+        for (let i = 0; i < 3; i++) {
+            setTimeout(() => createFirework(), i * 400);
+        }
+        
+        animate();
+    }
+
+    // 开始
+    setTimeout(init, 500);
+</script>
+</body>
+</html>
