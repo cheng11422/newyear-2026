@@ -73,11 +73,11 @@
     let isInitialized = false;
 
     // ====== 音乐系统 ======
-    // 替换成你自己的音乐文件名
-    const YOUR_MUSIC_FILE = 'newyear-song.mp3'; // 改成你的文件名
+    // 修正: 使用正确的文件名 newyear-music.mp3
+    const YOUR_MUSIC_FILE = 'newyear-music.mp3'; // 已修正文件名
     
-    // 创建音频
-    const bgMusic = new Audio(`https://raw.githubusercontent.com/cheng11422/newyear-2026/main/${YOUR_MUSIC_FILE}`);
+    // 创建音频 - 使用相对路径更可靠
+    const bgMusic = new Audio(YOUR_MUSIC_FILE);
     bgMusic.volume = 0.7;
     
     // 音乐停止时间：2分50秒 = 170秒
@@ -116,6 +116,10 @@
         }).catch((error) => {
             console.log('播放失败:', error);
             timeDisplay.textContent = "点击播放音乐";
+            
+            // 显示错误信息
+            timeDisplay.innerHTML += "<br>音乐加载失败，请检查文件名";
+            timeDisplay.style.color = "#ff5555";
         });
     }
     
@@ -126,10 +130,23 @@
         // 预加载音乐
         bgMusic.load();
         
+        // 检查音乐文件是否存在
+        bgMusic.addEventListener('error', function(e) {
+            console.error('音乐加载错误:', e);
+            timeDisplay.textContent = "音乐文件未找到: " + YOUR_MUSIC_FILE;
+            timeDisplay.style.color = "#ff5555";
+        });
+        
+        // 音乐加载成功
+        bgMusic.addEventListener('canplaythrough', function() {
+            console.log('音乐可以播放');
+            timeDisplay.textContent = "点击播放音乐";
+        });
+        
         // 延迟后尝试播放
         setTimeout(() => {
             playMusic();
-        }, 800);
+        }, 1000);
     });
     
     // 点击屏幕播放音乐
