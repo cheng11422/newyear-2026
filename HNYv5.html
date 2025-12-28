@@ -2,6 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>2026 新年烟花</title>
     <style>
         body {
@@ -14,29 +15,103 @@
             display: block;
             cursor: pointer;
         }
-        /* 简单的音乐时间显示 */
-        .time-display {
+        /* 音乐控制面板 */
+        .music-controls {
             position: fixed;
             bottom: 20px;
             left: 20px;
-            color: rgba(255,255,255,0.6);
-            font-size: 12px;
-            background: rgba(0,0,0,0.5);
+            color: white;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .music-status {
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        .music-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        .music-btn {
+            background: #4CAF50;
+            border: none;
+            color: white;
             padding: 5px 10px;
             border-radius: 5px;
-            z-index: 100;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.3s;
+        }
+        .music-btn:hover {
+            background: #45a049;
+        }
+        .music-btn:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        .debug-info {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            color: #ff5555;
+            font-size: 12px;
+            background: rgba(0,0,0,0.8);
+            padding: 8px;
+            border-radius: 5px;
+            max-width: 300px;
+            display: none;
+        }
+        .debug-toggle {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.5);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            z-index: 1000;
         }
     </style>
 </head>
 <body>
 
 <canvas id="canvas"></canvas>
-<div class="time-display" id="timeDisplay">音乐: 00:00 / 02:50</div>
+
+<div class="debug-toggle" onclick="toggleDebug()">显示调试信息</div>
+<div class="debug-info" id="debugInfo"></div>
+
+<div class="music-controls">
+    <div class="music-status" id="musicStatus">点击播放按钮开始音乐</div>
+    <div class="music-buttons">
+        <button class="music-btn" onclick="playMusic()" id="playBtn">播放音乐</button>
+        <button class="music-btn" onclick="pauseMusic()" id="pauseBtn">暂停</button>
+        <button class="music-btn" onclick="testMusic()">测试音频</button>
+    </div>
+    <div id="musicTime">00:00 / 02:50</div>
+</div>
 
 <script>
+    // ====== 调试功能 ======
+    function debugLog(message) {
+        const debugInfo = document.getElementById('debugInfo');
+        debugInfo.innerHTML += new Date().toLocaleTimeString() + ': ' + message + '<br>';
+        console.log(message);
+    }
+    
+    function toggleDebug() {
+        const debugInfo = document.getElementById('debugInfo');
+        debugInfo.style.display = debugInfo.style.display === 'block' ? 'none' : 'block';
+    }
+    
+    // ====== 初始化画布 ======
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
-    const timeDisplay = document.getElementById('timeDisplay');
     
     let width = canvas.width = window.innerWidth;
     let height = canvas.height = window.innerHeight;
@@ -48,6 +123,7 @@
     let particles = [];
     let fireworks = [];
     let musicStarted = false;
+    let audioContextInitialized = false;
     
     // 祝福语
     const textSequence = [
@@ -73,95 +149,204 @@
     let isInitialized = false;
 
     // ====== 音乐系统 ======
-    // 修正: 使用正确的文件名 newyear-music.mp3
-    const YOUR_MUSIC_FILE = 'newyear-music.mp3'; // 已修正文件名
+    const musicStatus = document.getElementById('musicStatus');
+    const musicTime = document.getElementById('musicTime');
+    const playBtn = document.getElementById('playBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
     
-    // 创建音频 - 使用相对路径更可靠
-    const bgMusic = new Audio(YOUR_MUSIC_FILE);
-    bgMusic.volume = 0.7;
+    // 尝试多个可能的音乐文件路径
+    const musicFiles = [
+        'newyear-music.mp3',
+        'https://raw.githubusercontent.com/cheng11422/newyear-2026/main/newyear-music.mp3',
+        'newyear-song.mp3',
+        './newyear-music.mp3',
+        '/newyear-music.mp3'
+    ];
     
-    // 音乐停止时间：2分50秒 = 170秒
-    const MUSIC_STOP_TIME = 170; // 单位：秒
+    let currentMusicIndex = 0;
+    let bgMusic = null;
     
-    let musicCheckInterval;
-    
-    // 检查音乐时间，超过2:50就暂停
-    function checkMusicTime() {
-        if (!bgMusic.paused && bgMusic.currentTime >= MUSIC_STOP_TIME) {
+    // 初始化音频
+    function initAudio() {
+        if (bgMusic) {
             bgMusic.pause();
-            bgMusic.currentTime = 0; // 重置到开头
-            clearInterval(musicCheckInterval);
-            timeDisplay.textContent = "音乐已停止 (02:50)";
+            bgMusic = null;
         }
         
-        // 更新时间显示
-        const current = Math.floor(bgMusic.currentTime);
-        const minutes = Math.floor(current / 60);
-        const seconds = current % 60;
-        const timeStr = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-        timeDisplay.textContent = `音乐: ${timeStr} / 02:50`;
-    }
-    
-    // 播放音乐的函数
-    function playMusic() {
-        if (musicStarted) return;
+        const musicFile = musicFiles[currentMusicIndex];
+        debugLog(`尝试加载音乐: ${musicFile}`);
         
-        bgMusic.play().then(() => {
-            musicStarted = true;
-            console.log('音乐开始播放');
-            
-            // 每0.5秒检查一次时间
-            musicCheckInterval = setInterval(checkMusicTime, 500);
-            
-        }).catch((error) => {
-            console.log('播放失败:', error);
-            timeDisplay.textContent = "点击播放音乐";
-            
-            // 显示错误信息
-            timeDisplay.innerHTML += "<br>音乐加载失败，请检查文件名";
-            timeDisplay.style.color = "#ff5555";
-        });
-    }
-    
-    // 页面加载后尝试播放
-    window.addEventListener('load', function() {
-        console.log('页面加载完成');
+        bgMusic = new Audio();
+        bgMusic.src = musicFile;
+        bgMusic.volume = 0.7;
+        bgMusic.preload = 'auto';
         
-        // 预加载音乐
-        bgMusic.load();
-        
-        // 检查音乐文件是否存在
+        // 设置音频事件监听器
         bgMusic.addEventListener('error', function(e) {
-            console.error('音乐加载错误:', e);
-            timeDisplay.textContent = "音乐文件未找到: " + YOUR_MUSIC_FILE;
-            timeDisplay.style.color = "#ff5555";
+            debugLog(`音乐加载失败: ${musicFile}`);
+            debugLog(`错误类型: ${bgMusic.error ? bgMusic.error.code : '未知错误'}`);
+            
+            // 尝试下一个文件
+            currentMusicIndex++;
+            if (currentMusicIndex < musicFiles.length) {
+                setTimeout(initAudio, 500);
+            } else {
+                musicStatus.innerHTML = '❌ 无法加载音乐文件<br>请检查文件名是否正确';
+                musicStatus.style.color = '#ff5555';
+                playBtn.disabled = true;
+            }
         });
         
-        // 音乐加载成功
         bgMusic.addEventListener('canplaythrough', function() {
-            console.log('音乐可以播放');
-            timeDisplay.textContent = "点击播放音乐";
+            debugLog(`音乐可以播放: ${musicFile}`);
+            musicStatus.innerHTML = '✅ 音乐加载成功<br>点击播放按钮开始';
+            musicStatus.style.color = '#4CAF50';
+            playBtn.disabled = false;
+            pauseBtn.disabled = true;
         });
         
-        // 延迟后尝试播放
-        setTimeout(() => {
-            playMusic();
-        }, 1000);
-    });
+        bgMusic.addEventListener('play', function() {
+            debugLog('音乐开始播放');
+            musicStatus.innerHTML = '▶️ 正在播放...';
+            musicStatus.style.color = '#4CAF50';
+            playBtn.disabled = true;
+            pauseBtn.disabled = false;
+            musicStarted = true;
+            startMusicTimer();
+        });
+        
+        bgMusic.addEventListener('pause', function() {
+            debugLog('音乐已暂停');
+            musicStatus.innerHTML = '⏸️ 音乐已暂停';
+            musicStatus.style.color = '#ff9800';
+            playBtn.disabled = false;
+            pauseBtn.disabled = true;
+        });
+        
+        bgMusic.addEventListener('ended', function() {
+            debugLog('音乐播放结束');
+            musicStatus.innerHTML = '⏹️ 播放完成';
+            musicStarted = false;
+            stopMusicTimer();
+        });
+        
+        // 尝试加载
+        bgMusic.load();
+    }
     
-    // 点击屏幕播放音乐
-    canvas.addEventListener('click', function(e) {
-        if (!musicStarted) {
-            playMusic();
+    // 音乐计时器
+    let musicTimer = null;
+    const MUSIC_DURATION = 170; // 2分50秒
+    
+    function startMusicTimer() {
+        stopMusicTimer();
+        musicTimer = setInterval(updateMusicTime, 500);
+        updateMusicTime();
+    }
+    
+    function stopMusicTimer() {
+        if (musicTimer) {
+            clearInterval(musicTimer);
+            musicTimer = null;
+        }
+    }
+    
+    function updateMusicTime() {
+        if (!bgMusic) return;
+        
+        const current = Math.floor(bgMusic.currentTime);
+        const total = MUSIC_DURATION;
+        
+        if (current >= total) {
+            bgMusic.pause();
+            bgMusic.currentTime = 0;
+            musicTime.textContent = '00:00 / 02:50';
+            return;
         }
         
-        // 点击位置放烟花
-        createFirework(e.clientX, e.clientY);
-    });
+        const formatTime = (seconds) => {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        };
+        
+        musicTime.textContent = `${formatTime(current)} / ${formatTime(total)}`;
+    }
     
-    // 烟花音效
-    const fireSound = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-firework-explosion-3097.mp3');
-    fireSound.volume = 0.3;
+    // 播放音乐
+    function playMusic() {
+        if (!bgMusic) {
+            initAudio();
+            return;
+        }
+        
+        // 解锁音频上下文（针对Chrome等浏览器的限制）
+        unlockAudioContext();
+        
+        bgMusic.play().catch(error => {
+            debugLog(`播放失败: ${error.message}`);
+            musicStatus.innerHTML = '⚠️ 需要用户交互<br>请先点击屏幕任意位置';
+            musicStatus.style.color = '#ff9800';
+            
+            // 显示错误详情
+            if (error.name === 'NotAllowedError') {
+                musicStatus.innerHTML += '<br>浏览器阻止自动播放';
+            }
+        });
+    }
+    
+    // 暂停音乐
+    function pauseMusic() {
+        if (bgMusic && !bgMusic.paused) {
+            bgMusic.pause();
+        }
+    }
+    
+    // 解锁音频上下文（解决Chrome的自动播放限制）
+    function unlockAudioContext() {
+        if (audioContextInitialized) return;
+        
+        // 创建一个静音音频并播放，以解锁音频上下文
+        const unlockAudio = () => {
+            const silentAudio = new Audio();
+            silentAudio.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEAQB8AAEAfAAABAAgAZGF0YQ';
+            silentAudio.volume = 0;
+            
+            silentAudio.play().then(() => {
+                debugLog('音频上下文已解锁');
+                silentAudio.pause();
+                audioContextInitialized = true;
+            }).catch(error => {
+                debugLog(`解锁音频上下文失败: ${error}`);
+            });
+        };
+        
+        // 需要用户交互后才能解锁
+        document.addEventListener('click', unlockAudio, { once: true });
+        document.addEventListener('touchstart', unlockAudio, { once: true });
+        document.addEventListener('keydown', unlockAudio, { once: true });
+    }
+    
+    // 测试音频（简单的蜂鸣声，确认音频系统工作）
+    function testMusic() {
+        debugLog('测试音频系统...');
+        const testAudio = new Audio();
+        testAudio.src = 'https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.wav';
+        testAudio.volume = 0.5;
+        
+        testAudio.play().then(() => {
+            debugLog('测试音频播放成功');
+            musicStatus.innerHTML = '🔊 音频系统正常';
+            setTimeout(() => {
+                if (musicStatus.innerHTML === '🔊 音频系统正常') {
+                    musicStatus.innerHTML = '点击播放按钮开始音乐';
+                }
+            }, 2000);
+        }).catch(error => {
+            debugLog(`测试音频失败: ${error}`);
+            musicStatus.innerHTML = '❌ 音频系统有问题';
+        });
+    }
     
     // ====== 烟花系统 ======
     
@@ -214,8 +399,7 @@
                     this.explode();
                     // 播放音效
                     if (musicStarted) {
-                        fireSound.currentTime = 0;
-                        fireSound.play().catch(() => {});
+                        playFireSound();
                     }
                 }
             } else {
@@ -265,6 +449,17 @@
 
     function createFirework(x, y) {
         fireworks.push(new Firework(x, y));
+    }
+    
+    // 烟花音效
+    function playFireSound() {
+        try {
+            const fireSound = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-firework-explosion-3097.mp3');
+            fireSound.volume = 0.3;
+            fireSound.play().catch(() => {});
+        } catch (e) {
+            // 静默失败
+        }
     }
 
     // ====== 文字系统 ======
@@ -352,7 +547,7 @@
         });
         
         // 随机烟花
-        if (Math.random() < 0.03) {
+        if (Math.random() < 0.03 && musicStarted) {
             createFirework();
         }
         
@@ -375,8 +570,36 @@
         animate();
     }
 
-    // 开始
-    setTimeout(init, 500);
+    // ====== 启动 ======
+    window.addEventListener('load', function() {
+        debugLog('页面加载完成');
+        
+        // 初始化音频
+        initAudio();
+        
+        // 点击屏幕任意位置可以触发音频
+        canvas.addEventListener('click', function(e) {
+            if (!musicStarted) {
+                playMusic();
+            }
+            createFirework(e.clientX, e.clientY);
+        });
+        
+        // 启动动画
+        setTimeout(init, 500);
+        
+        // 显示帮助信息
+        setTimeout(() => {
+            debugLog('1. 点击"播放音乐"按钮');
+            debugLog('2. 如果失败，点击"测试音频"');
+            debugLog('3. 点击屏幕放烟花');
+        }, 1000);
+    });
+    
+    // 全局导出函数供按钮使用
+    window.playMusic = playMusic;
+    window.pauseMusic = pauseMusic;
+    window.testMusic = testMusic;
 </script>
 </body>
 </html>
