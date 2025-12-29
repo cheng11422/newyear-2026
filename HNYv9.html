@@ -227,7 +227,8 @@
             this.particles = [];
             this.trail = [];
             this.size = 2.5; // 更大的烟花头
-            this.sparkCount = Math.random() * 80 + 100; // 100-180个火花
+            // 减少烟花粒子数量
+            this.sparkCount = Math.random() * 60 + 80; // 减少：80-140个火花
             this.largeSparkRatio = 0.3; // 30%是大粒子
         }
 
@@ -268,8 +269,8 @@
                 this.particles.push(new FireworkParticle(this.x, this.y, this.color, false));
             }
             
-            // 添加一些次级火花（不同颜色）
-            for (let i = 0; i < this.sparkCount * 0.4; i++) {
+            // 减少次级火花数量
+            for (let i = 0; i < this.sparkCount * 0.3; i++) { // 减少到30%
                 const isLarge = Math.random() < 0.2; // 20%的大粒子
                 const particle = new FireworkParticle(
                     this.x + (Math.random() - 0.5) * 20,
@@ -282,8 +283,8 @@
                 this.particles.push(particle);
             }
             
-            // 添加一些特别亮的火花
-            for (let i = 0; i < 5; i++) {
+            // 减少特别亮火花数量
+            for (let i = 0; i < 3; i++) { // 减少到3个
                 const particle = new FireworkParticle(this.x, this.y, "white", true);
                 particle.size = 3.5;
                 particle.alpha = 0.9;
@@ -411,6 +412,12 @@
             currentStep = (currentStep + 1) % textSequence.length;
             lastStepTime = now;
             updateParticles(textSequence[currentStep].text);
+            
+            // 文字切换时发射更少烟花
+            for (let i = 0; i < 3; i++) { // 减少到3个
+                setTimeout(() => {
+                    fireworks.push(new Firework());
+                }, i * 300); // 增加间隔时间
             }
         }
 
@@ -420,11 +427,11 @@
             p.draw();
         });
 
-        // 3. 随机生成背景烟花（增加频率）
-        let spawnChance = 0.04;
+        // 3. 随机生成背景烟花（减少频率）
+        let spawnChance = 0.02; // 减少到2%
         if (textSequence[currentStep].text.includes("2026") || 
             textSequence[currentStep].text.includes("快乐")) {
-            spawnChance = 0.08; // 重要时刻烟花更多
+            spawnChance = 0.05; // 重要时刻烟花减少
         }
         
         if (Math.random() < spawnChance) {
@@ -451,11 +458,11 @@
         updateParticles(textSequence[0].text);
         isInitialized = true;
         
-        // 初始烟花（更多更大）
-        for (let i = 0; i < 6; i++) {
+        // 初始烟花（更少）
+        for (let i = 0; i < 4; i++) { // 减少到4个
             setTimeout(() => {
                 fireworks.push(new Firework());
-            }, i * 350);
+            }, i * 500); // 增加间隔时间
         }
         
         animate();
