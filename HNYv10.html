@@ -46,7 +46,7 @@
     let particles = [];
     let fireworks = [];
     
-    // 更新为温馨祝福语序列
+    // 更新为温馨祝福语序列（去掉表情符号）
     const textSequence = [
         { text: "再见 2025", time: 4000 },
         { text: "你的2025年可能并不容易", time: 4000 },
@@ -55,18 +55,18 @@
         { text: "你都会越来越顺利", time: 4000 },
         { text: "愿 2026 年", time: 3500 },
         { text: "你被温柔以待", time: 3500 },
-        { text: "所求皆如愿 ✨", time: 4000 },
+        { text: "所求皆如愿", time: 4000 },
         { text: "新的一年", time: 3000 },
         { text: "愿你身体健康", time: 3500 },
         { text: "家人平安", time: 3500 },
-        { text: "心中有光 🌟", time: 4000 },
+        { text: "心中有光", time: 4000 },
         { text: "2026", time: 3500 },
         { text: "愿所有努力都有回报", time: 4000 },
-        { text: "所有等待都有结果 🎆", time: 4000 },
+        { text: "所有等待都有结果", time: 4000 },
         { text: "愿你所到之处皆是美好", time: 4000 },
-        { text: "所遇之人皆是善意 💖", time: 4000 },
+        { text: "所遇之人皆是善意", time: 4000 },
         { text: "不管过去如何", time: 3500 },
-        { text: "2026 都是新的开始 🌈", time: 4500 },
+        { text: "2026 都是新的开始", time: 4500 },
         { text: "有些东西我说不出口", time: 4000 },
         { text: "但是你也知道了答案", time: 4000 },
         { text: "你的感觉是对的", time: 5000 },
@@ -351,7 +351,7 @@
         offCanvas.width = width;
         offCanvas.height = height;
         
-        // 根据文字长度和内容调整字体大小
+        // 根据文字长度调整字体大小
         let fontSize = 120;
         if (text.length <= 4) fontSize = 150;
         if (text.length > 8) fontSize = 100;
@@ -425,16 +425,14 @@
             lastStepTime = now;
             updateParticles(textSequence[currentStep].text);
             
-            // 判断是否特殊时刻
-            const isSpecialMoment = currentText.includes("✨") || 
-                                  currentText.includes("🌟") || 
-                                  currentText.includes("🎆") ||
-                                  currentText.includes("💖") ||
-                                  currentText.includes("🌈") ||
-                                  currentText.includes("2026") ||
-                                  currentText.includes("快乐") ||
+            // 判断是否特殊时刻（基于文字内容）
+            const isSpecialMoment = currentText.includes("2026") ||
                                   currentText.includes("顺利") ||
-                                  currentText.includes("对的");
+                                  currentText.includes("对的") ||
+                                  currentText.includes("快乐") ||
+                                  currentText.includes("美好") ||
+                                  currentText.includes("善良") ||
+                                  currentText.includes("开始");
             
             // 文字切换时发射烟花
             const fireworkCount = isSpecialMoment ? 4 : 2; // 特殊时刻更多烟花
@@ -456,13 +454,11 @@
         const currentText = textSequence[currentStep].text;
         
         // 判断当前是否是重要时刻
-        const isImportantMoment = currentText.includes("✨") || 
-                                currentText.includes("🌟") || 
-                                currentText.includes("🎆") ||
-                                currentText.includes("💖") ||
-                                currentText.includes("🌈") ||
-                                currentText.includes("顺利") ||
-                                currentText.includes("对的");
+        const isImportantMoment = currentText.includes("顺利") ||
+                                currentText.includes("对的") ||
+                                currentText.includes("美好") ||
+                                currentText.includes("善良") ||
+                                currentText.includes("开始");
         
         if (isImportantMoment) {
             spawnChance = 0.04; // 重要时刻适当增加
