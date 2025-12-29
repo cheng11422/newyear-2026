@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2026 新年烟花</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #000;
+            font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+            color: white;
+        }
+        canvas {
+            display: block;
+            cursor: pointer;
+        }
+        .instruction {
+            position: fixed;
+            top: 15px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+            z-index: 100;
+            pointer-events: none;
+            animation: fadeInOut 3s ease-in-out infinite;
+        }
+        @keyframes fadeInOut {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+        @media (max-width: 768px) {
+            .instruction {
+                font-size: 12px;
+                top: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="instruction">点击或触摸屏幕放烟花 🎆</div>
+<canvas id="canvas"></canvas>
+
+<script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    let width = canvas.width = window.innerWidth;
+    let height = canvas.height = window.innerHeight;
+    
+    // 祝福语 - 添加更多新年祝福
+    const textSequence = [
+        { text: "再见 2025", time: 2500 },
+        { text: "3", time: 800 },
+        { text: "2", time: 800 },
+        { text: "1", time: 800 },
+        { text: "2026", time: 3000 },
+        { text: "新年快乐", time: 2500 },
+        { text: "万事如意", time: 2000 },
+        { text: "身体健康", time: 2000 },
+        { text: "心想事成", time: 2000 },
+        { text: "财源广进", time: 2000 },
+        { text: "阖家幸福", time: 2000 },
+        { text: "笑口常开", time: 2000 },
+        { text: "好运连连", time: 2000 },
+        { text: "龙年大吉", time: 2000 },
+        { text: "福星高照", time: 2000 },
+        { text: "金玉满堂", time: 2000 },
+        { text: "步步高升", time: 2000 },
+        { text: "喜气洋洋", time: 2000 },
+        { text: "2026 一切顺利", time: 3000 },
+        { text: "新年快乐", time: 4000 }
+    ];
+    
+    let particles = [];
+    let fireworks = [];
+    let sparkles = [];
+    let currentStep = 0;
+    let lastStepTime = Date.now();
+    let isInitialized = false;
+    
+    // 添加星光背景
+    class Star {
+        constructor() {
+            this.x = Math.random() * width;
+            this.y = Math.random() * height;
+            this.size = Math.random() * 1.5 + 0.5;
+            this.brightness = Math.random() * 0.5 + 0.5;
+            this.speed = Math.random() * 0.3 + 0.1;
+        }
+        
+        update() {
+            this.y += this.speed;
+            if (this.y > height) {
+                this.y = 0;
+                this.x = Math.random() * width;
+            }
+            
+            // 星光闪烁效果
+            this.brightness = 0.5 + Math.sin(Date.now() * 0.002 + this.x) * 0.3;
+        }
+        
+        draw() {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255, 255, 255, ${this.brightness * 0.8})`;
+            ctx.fill();
+        }
+    }
+    
+    let stars = Array(100).fill().map(() => new Star());
+    
+    // 改进的烟花粒子类
+    class FireworkParticle {
+        constructor(x, y, color) {
+            this.x = x;
+            this.y = y;
+            this.vx = (Math.random() - 0.5) * 8;
+            this.vy = (Math.random() - 0.5) * 8;
+            this.color = color;
+            this.alpha = 1;
+            this.size = Math.random() * 2 + 1;
+            this.gravity = 0.03;
+            this.decay = Math.random() * 0.015 + 0.005;
+            this.flicker = Math.random() * 0.1 + 0.9;
+        }
+        
+        update() {
+            this.vy += this.gravity;
+            this.x += this.vx;
+            this.y += this.vy;
+            this.alpha -= this.decay;
+            this.flicker = 0.9 + Math.sin(Date.now() * 0.01) * 0.1;
+        }
+        
+        draw() {
+            ctx.save();
+            ctx.globalAlpha = this.alpha * this.flicker;
+            ctx.fillStyle = this.color;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+    }
+    
+    // 改进的烟花类 - 更加细腻
+    class Firework {
+        constructor(x, y) {
+            this.x = x || Math.random() * width;
+            this.y = y || height;
+            this.targetY = Math.random() * (height * 0.4) + height * 0.1;
+            this.speed = Math.random() * 3 + 5;
+            this.color = `hsl(${Math.random() * 360}, 100%, 65%)`;
+            this.trail = [];
+            this.exploded = false;
+            this.particles = [];
+            this.sparkCount = 80 + Math.random() * 40; // 更多粒子
+            this.glow = true;
+            this.glowSize = 0;
+        }
+        
+        update() {
+            if (!this.exploded) {
+                // 添加尾迹
+                this.trail.push({x: this.x, y: this.y, alpha: 1});
+                if (this.trail.length > 8) this.trail.shift();
+                
+                // 更新尾迹透明度
+                this.trail.forEach(p => p.alpha *= 0.9);
+                
+                this.y -= this.speed;
+                this.glowSize = Math.sin(Date.now() * 0.01) * 2 + 5;
+                
+                if (this.y <= this.targetY) {
+                    this.explode();
+                }
+            } else {
+                this.particles.forEach(p => p.update());
+                this.particles = this.particles.filter(p => p.alpha > 0.1);
+            }
+        }
+        
+        explode() {
+            this.exploded = true;
+            
+            // 创建多种颜色的粒子
+            const colorCount = 3;
+            const colors = [
+                this.color,
+                `hsl(${(parseInt(this.color.split('(')[1].split(',')[0]) + 60) % 360}, 100%, 70%)`,
+                `hsl(${(parseInt(this.color.split('(')[1].split(',')[0]) + 120) % 360}, 100%, 70%)`
+            ];
+            
+            for (let i = 0; i < this.sparkCount; i++) {
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                this.particles.push(new FireworkParticle(this.x, this.y, color));
+            }
+            
+            // 创建闪烁小星星效果
+            for (let i = 0; i < 15; i++) {
+                sparkles.push({
+                    x: this.x,
+                    y: this.y,
+                    size: Math.random() * 3 + 1,
+                    speed: Math.random() * 3 + 2,
+                    angle: Math.random() * Math.PI * 2,
+                    life: 1,
+                    decay: 0.02
+                });
+            }
+        }
+        
+        draw() {
+            if (!this.exploded) {
+                // 绘制发光效果
+                if (this.glow) {
+                    ctx.save();
+                    ctx.globalAlpha = 0.3;
+                    ctx.fillStyle = this.color;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.glowSize, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+                
+                // 绘制尾迹
+                this.trail.forEach((point, i) => {
+                    ctx.save();
+                    ctx.globalAlpha = point.alpha * (i / this.trail.length);
+                    ctx.fillStyle = this.color;
+                    ctx.beginPath();
+                    ctx.arc(point.x, point.y, 2 * (i / this.trail.length + 0.5), 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                });
+                
+                // 绘制烟花主体
+                ctx.fillStyle = this.color;
+                ctx.fillRect(this.x - 1.5, this.y, 3, 12);
+                ctx.beginPath();
+                ctx.arc(this.x, this.y + 3, 2, 0, Math.PI * 2);
+                ctx.fill();
+            } else {
+                this.particles.forEach(p => p.draw());
+            }
+        }
+    }
+    
+    // 改进的文字粒子类 - 更加细腻
+    class TextParticle {
+        constructor(targetX, targetY) {
+            this.x = Math.random() * width;
+            this.y = Math.random() * height;
+            this.targetX = targetX;
+            this.targetY = targetY;
+            this.speed = Math.random() * 0.04 + 0.02;
+            this.size = Math.random() * 2 + 1.5;
+            this.color = '#FFFFFF';
+            this.twinkle = Math.random() * Math.PI * 2;
+            this.twinkleSpeed = Math.random() * 0.02 + 0.01;
+        }
+        
+        update() {
+            const dx = this.targetX - this.x;
+            const dy = this.targetY - this.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            if (distance > 1) {
+                this.x += dx * this.speed;
+                this.y += dy * this.speed;
+            }
+            
+            this.twinkle += this.twinkleSpeed;
+            const scale = 0.8 + Math.sin(this.twinkle) * 0.2;
+            this.currentSize = this.size * scale;
+        }
+        
+        draw() {
+            ctx.save();
+            ctx.globalAlpha = 0.9;
+            ctx.fillStyle = this.color;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.currentSize || this.size, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+    }
+    
+    function createFirework(x, y) {
+        fireworks.push(new Firework(x, y));
+        
+        // 创建额外的烟花效果
+        if (Math.random() > 0.7) {
+            setTimeout(() => {
+                for (let i = 0; i < 3; i++) {
+                    setTimeout(() => {
+                        fireworks.push(new Firework(
+                            x + (Math.random() - 0.5) * 100,
+                            y + (Math.random() - 0.5) * 100
+                        ));
+                    }, i * 100);
+                }
+            }, 300);
+        }
+    }
+    
+    // 改进的文字创建函数
+    function createTextParticles(text) {
+        const offCanvas = document.createElement('canvas');
+        const offCtx = offCanvas.getContext('2d');
+        offCanvas.width = width;
+        offCanvas.height = height;
+        
+        // 动态字体大小
+        let fontSize = Math.min(180, width / 7);
+        if (text.length > 4) fontSize *= 0.75;
+        
+        // 创建更优雅的文字效果
+        offCtx.font = `bold ${fontSize}px 'Microsoft YaHei', 'PingFang SC', sans-serif`;
+        offCtx.fillStyle = '#FFFFFF';
+        offCtx.textAlign = 'center';
+        offCtx.textBaseline = 'middle';
+        
+        // 添加文字阴影效果
+        offCtx.shadowColor = 'rgba(255, 215, 0, 0.3)';
+        offCtx.shadowBlur = 15;
+        offCtx.fillText(text, width / 2, height / 2);
+        
+        const imageData = offCtx.getImageData(0, 0, width, height).data;
+        const particleGap = 5; // 更密集的粒子
+        const targets = [];
+        
+        for (let y = 0; y < height; y += particleGap) {
+            for (let x = 0; x < width; x += particleGap) {
+                const index = (y * width + x) * 4;
+                if (imageData[index + 3] > 128) {
+                    targets.push({ 
+                        x, 
+                        y,
+                        // 添加随机偏移使文字更自然
+                        offsetX: (Math.random() - 0.5) * 10,
+                        offsetY: (Math.random() - 0.5) * 10
+                    });
+                }
+            }
+        }
+        
+        return targets;
+    }
+    
+    function updateTextParticles(text) {
+        const targets = createTextParticles(text);
+        
+        // 如果粒子数量变化，创建新粒子
+        if (targets.length !== particles.length) {
+            particles = [];
+            targets.forEach(target => {
+                particles.push(new TextParticle(target.x + target.offsetX, target.y + target.offsetY));
+            });
+        } else {
+            // 更新现有粒子的目标位置
+            particles.forEach((particle, i) => {
+                particle.targetX = targets[i].x + targets[i].offsetX;
+                particle.targetY = targets[i].y + targets[i].offsetY;
+            });
+        }
+    }
+    
+    // 更新闪烁粒子
+    function updateSparkles() {
+        sparkles.forEach((sparkle, index) => {
+            sparkle.x += Math.cos(sparkle.angle) * sparkle.speed;
+            sparkle.y += Math.sin(sparkle.angle) * sparkle.speed;
+            sparkle.life -= sparkle.decay;
+            
+            if (sparkle.life <= 0) {
+                sparkles.splice(index, 1);
+            }
+        });
+    }
+    
+    // 绘制闪烁粒子
+    function drawSparkles() {
+        sparkles.forEach(sparkle => {
+            ctx.save();
+            ctx.globalAlpha = sparkle.life;
+            ctx.fillStyle = `rgba(255, ${200 + Math.random() * 55}, ${100 + Math.random() * 155}, 0.8)`;
+            ctx.beginPath();
+            ctx.arc(sparkle.x, sparkle.y, sparkle.size, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        });
+    }
+    
+    // 主动画循环
+    function animate() {
+        // 创建渐变背景
+        const gradient = ctx.createRadialGradient(
+            width / 2, height / 2, 0,
+            width / 2, height / 2, Math.max(width, height) / 2
+        );
+        gradient.addColorStop(0, 'rgba(10, 10, 30, 0.3)');
+        gradient.addColorStop(1, 'rgba(0, 0, 20, 0.8)');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, width, height);
+        
+        // 绘制星空
+        stars.forEach(star => {
+            star.update();
+            star.draw();
+        });
+        
+        // 更新文字
+        const now = Date.now();
+        if (now - lastStepTime > textSequence[currentStep].time) {
+            currentStep = (currentStep + 1) % textSequence.length;
+            lastStepTime = now;
+            updateTextParticles(textSequence[currentStep].text);
+            
+            // 切换文字时放优雅的烟花
+            for (let i = 0; i < 2; i++) {
+                setTimeout(() => {
+                    createFirework(
+                        width * (0.3 + i * 0.4),
+                        height * 0.7
+                    );
+                }, i * 300);
+            }
+        }
+        
+        // 更新和绘制文字粒子
+        particles.forEach(p => {
+            p.update();
+            p.draw();
+        });
+        
+        // 更新和绘制烟花
+        fireworks.forEach(f => {
+            f.update();
+            f.draw();
+        });
+        
+        // 更新和绘制闪烁粒子
+        updateSparkles();
+        drawSparkles();
+        
+        // 随机烟花（概率更低但更密集）
+        if (Math.random() < 0.01) {
+            createFirework();
+            if (Math.random() > 0.5) {
+                setTimeout(() => createFirework(), 200);
+            }
+        }
+        
+        // 清理完成的烟花
+        fireworks = fireworks.filter(f => !f.exploded || f.particles.length > 5);
+        
+        requestAnimationFrame(animate);
+    }
+    
+    // 初始化
+    function init() {
+        updateTextParticles(textSequence[0].text);
+        isInitialized = true;
+        
+        // 初始烟花 - 更优雅的入场
+        setTimeout(() => {
+            createFirework(width * 0.3, height);
+            setTimeout(() => createFirework(width * 0.7, height), 400);
+        }, 800);
+        
+        animate();
+    }
+    
+    // 页面启动
+    window.addEventListener('load', function() {
+        init();
+        
+        // 点击屏幕放烟花
+        canvas.addEventListener('click', function(e) {
+            createFirework(e.clientX, e.clientY);
+        });
+        
+        // 触摸事件支持
+        canvas.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            createFirework(touch.clientX, touch.clientY);
+        });
+        
+        // 窗口大小调整
+        window.addEventListener('resize', () => {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            if (isInitialized) updateTextParticles(textSequence[currentStep].text);
+            
+            // 重新创建星空
+            stars = Array(100).fill().map(() => new Star());
+        });
+        
+        // 自动放一些烟花
+        setInterval(() => {
+            if (Math.random() < 0.3) {
+                createFirework();
+            }
+        }, 2000);
+    });
+</script>
+</body>
+</html>
