@@ -52,28 +52,28 @@
     let width = canvas.width = window.innerWidth;
     let height = canvas.height = window.innerHeight;
     
-    // 调整祝福语显示时间 - 更长的停留时间以便阅读
+    // 大幅增加祝福语显示时间 - 确保完全可读
     const textSequence = [
-        { text: "再见 2025", time: 3000 },     // 3秒
-        { text: "3", time: 1200 },            // 1.2秒
-        { text: "2", time: 1200 },            // 1.2秒
-        { text: "1", time: 1500 },            // 1.5秒（最后的"1"稍微长一点）
-        { text: "2026", time: 3500 },         // 3.5秒
-        { text: "新年快乐", time: 3000 },     // 3秒
-        { text: "万事如意", time: 2800 },     // 2.8秒
-        { text: "身体健康", time: 2800 },     // 2.8秒
-        { text: "心想事成", time: 2800 },     // 2.8秒
-        { text: "财源广进", time: 2800 },     // 2.8秒
-        { text: "阖家幸福", time: 2800 },     // 2.8秒
-        { text: "笑口常开", time: 2800 },     // 2.8秒
-        { text: "好运连连", time: 2800 },     // 2.8秒
-        { text: "龙年大吉", time: 2800 },     // 2.8秒
-        { text: "福星高照", time: 2800 },     // 2.8秒
-        { text: "金玉满堂", time: 2800 },     // 2.8秒
-        { text: "步步高升", time: 2800 },     // 2.8秒
-        { text: "喜气洋洋", time: 2800 },     // 2.8秒
-        { text: "2026 一切顺利", time: 3500 }, // 3.5秒
-        { text: "新年快乐", time: 5000 }      // 5秒（最后的祝福停留更久）
+        { text: "再见 2025", time: 4000 },     // 4秒
+        { text: "3", time: 3000 },            // 2秒
+        { text: "2", time: 3000 },            // 2秒
+        { text: "1", time: 3500 },            // 2.5秒（最后的"1"更长）
+        { text: "2026", time: 5000 },         // 5秒
+        { text: "新年快乐", time: 4500 },     // 4.5秒
+        { text: "万事如意", time: 4000 },     // 4秒
+        { text: "身体健康", time: 4000 },     // 4秒
+        { text: "心想事成", time: 4000 },     // 4秒
+        { text: "财源广进", time: 4000 },     // 4秒
+        { text: "阖家幸福", time: 4000 },     // 4秒
+        { text: "笑口常开", time: 4000 },     // 4秒
+        { text: "好运连连", time: 4000 },     // 4秒
+        { text: "龙年大吉", time: 4000 },     // 4秒
+        { text: "福星高照", time: 4000 },     // 4秒
+        { text: "金玉满堂", time: 4000 },     // 4秒
+        { text: "步步高升", time: 4000 },     // 4秒
+        { text: "喜气洋洋", time: 4000 },     // 4秒
+        { text: "2026 一切顺利", time: 5000 }, // 5秒
+        { text: "新年快乐", time: 8000 }      // 8秒（最后的祝福停留最久）
     ];
     
     let particles = [];
@@ -245,20 +245,20 @@
         }
     }
     
-    // 改进的文字粒子类 - 添加渐变显示效果
+    // 改进的文字粒子类 - 更慢的显示速度
     class TextParticle {
         constructor(targetX, targetY) {
             this.x = Math.random() * width;
             this.y = Math.random() * height;
             this.targetX = targetX;
             this.targetY = targetY;
-            this.speed = Math.random() * 0.04 + 0.02;
+            this.speed = Math.random() * 0.03 + 0.015; // 更慢的速度
             this.size = Math.random() * 2 + 1.5;
             this.color = '#FFFFFF';
             this.twinkle = Math.random() * Math.PI * 2;
-            this.twinkleSpeed = Math.random() * 0.02 + 0.01;
+            this.twinkleSpeed = Math.random() * 0.01 + 0.005; // 更慢的闪烁
             this.alpha = 0;
-            this.fadeInSpeed = Math.random() * 0.03 + 0.02;
+            this.fadeInSpeed = Math.random() * 0.02 + 0.01; // 更慢的淡入
             this.hasArrived = false;
         }
         
@@ -307,26 +307,29 @@
                             x + (Math.random() - 0.5) * 100,
                             y + (Math.random() - 0.5) * 100
                         ));
-                    }, i * 100);
+                    }, i * 200);
                 }
-            }, 300);
+            }, 500);
         }
     }
     
-    // 添加平滑过渡效果
+    // 添加更平滑的过渡效果
     function transitionToText(text) {
         isTransitioning = true;
         
-        // 淡出现有粒子
+        // 更慢的淡出现有粒子
         particles.forEach(p => {
             p.fadeOut = true;
+            p.fadeOutSpeed = Math.random() * 0.02 + 0.01;
         });
         
-        // 短暂延迟后创建新粒子
+        // 更长的延迟后创建新粒子
         setTimeout(() => {
             updateTextParticles(text);
-            isTransitioning = false;
-        }, 500);
+            setTimeout(() => {
+                isTransitioning = false;
+            }, 500);
+        }, 800);
     }
     
     function createTextParticles(text) {
@@ -348,7 +351,7 @@
         offCtx.fillText(text, width / 2, height / 2);
         
         const imageData = offCtx.getImageData(0, 0, width, height).data;
-        const particleGap = text.length <= 4 ? 4 : 5; // 单字或数字更密集
+        const particleGap = text.length <= 4 ? 4 : 5;
         const targets = [];
         
         for (let y = 0; y < height; y += particleGap) {
@@ -420,7 +423,7 @@
             star.draw();
         });
         
-        // 更新文字序列
+        // 更新文字序列 - 更长的间隔时间
         const now = Date.now();
         if (!isTransitioning && now - lastStepTime > textSequence[currentStep].time) {
             currentStep = (currentStep + 1) % textSequence.length;
@@ -428,16 +431,26 @@
             transitionToText(textSequence[currentStep].text);
             
             // 根据文字内容调整烟花效果
-            if (textSequence[currentStep].text.includes("新年") || 
-                textSequence[currentStep].text.includes("2026")) {
+            const currentText = textSequence[currentStep].text;
+            if (currentText === "2026" || currentText === "新年快乐") {
                 // 重要时刻放更多烟花
-                for (let i = 0; i < 3; i++) {
+                for (let i = 0; i < 4; i++) {
                     setTimeout(() => {
                         createFirework(
-                            width * (0.2 + i * 0.3),
+                            width * (0.15 + i * 0.23),
                             height * 0.7
                         );
-                    }, i * 300);
+                    }, i * 400);
+                }
+            } else if (currentText === "1") {
+                // 倒数1的时候特殊效果
+                for (let i = 0; i < 5; i++) {
+                    setTimeout(() => {
+                        createFirework(
+                            width * 0.5,
+                            height * 0.7
+                        );
+                    }, i * 200);
                 }
             } else {
                 // 普通切换放少量烟花
@@ -447,7 +460,7 @@
                             width * (0.3 + i * 0.4),
                             height * 0.7
                         );
-                    }, i * 300);
+                    }, i * 400);
                 }
             }
         }
@@ -455,7 +468,7 @@
         // 更新和绘制文字粒子（添加淡出效果）
         particles.forEach((p, index) => {
             if (p.fadeOut) {
-                p.alpha -= 0.05;
+                p.alpha -= (p.fadeOutSpeed || 0.03);
                 if (p.alpha <= 0) {
                     particles.splice(index, 1);
                     return;
@@ -475,8 +488,8 @@
         updateSparkles();
         drawSparkles();
         
-        // 降低随机烟花频率，避免干扰文字阅读
-        if (Math.random() < 0.005) {
+        // 极低的随机烟花频率
+        if (Math.random() < 0.002 && !isTransitioning) {
             createFirework();
         }
         
@@ -491,11 +504,11 @@
         updateTextParticles(textSequence[0].text);
         isInitialized = true;
         
-        // 初始烟花 - 延迟开始，让用户先看到文字
+        // 初始烟花 - 更长的延迟
         setTimeout(() => {
             createFirework(width * 0.3, height);
-            setTimeout(() => createFirework(width * 0.7, height), 800);
-        }, 1500);
+            setTimeout(() => createFirework(width * 0.7, height), 1200);
+        }, 2000);
         
         animate();
     }
@@ -527,12 +540,12 @@
             stars = Array(100).fill().map(() => new Star());
         });
         
-        // 自动放烟花（更低的频率）
+        // 非常低的自动烟花频率
         setInterval(() => {
-            if (Math.random() < 0.2 && !isTransitioning) {
+            if (Math.random() < 0.15 && !isTransitioning) {
                 createFirework();
             }
-        }, 3000);
+        }, 5000);
     });
 </script>
 </body>
