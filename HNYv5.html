@@ -10,72 +10,159 @@
             overflow: hidden;
             background: #000;
             font-family: 'Microsoft YaHei', sans-serif;
+            color: white;
         }
         canvas {
             display: block;
             cursor: pointer;
         }
-        /* 音乐控制面板 */
-        .music-controls {
+        /* 控制面板 - 响应式设计 */
+        .control-panel {
             position: fixed;
-            bottom: 20px;
-            left: 20px;
-            color: white;
+            bottom: 10px;
+            left: 10px;
+            right: 10px;
             z-index: 100;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 10px 15px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 12px;
             border-radius: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 215, 0, 0.5);
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+            max-width: 400px;
+            margin: 0 auto;
         }
-        .music-status {
-            margin-bottom: 5px;
+        @media (min-width: 768px) {
+            .control-panel {
+                left: 20px;
+                right: auto;
+                width: 280px;
+                bottom: 20px;
+            }
+        }
+        .panel-title {
+            color: #FFD700;
             font-size: 14px;
+            margin-bottom: 8px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .music-info {
+            margin-bottom: 8px;
+            padding: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 5px;
+            font-size: 12px;
         }
         .music-buttons {
-            display: flex;
-            gap: 10px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+            margin-bottom: 8px;
         }
-        .music-btn {
-            background: #4CAF50;
+        .control-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             border: none;
             color: white;
-            padding: 5px 10px;
+            padding: 6px;
             border-radius: 5px;
             cursor: pointer;
-            font-size: 12px;
-            transition: background 0.3s;
+            font-size: 11px;
+            transition: all 0.3s;
+            font-weight: bold;
+            min-height: 32px;
         }
-        .music-btn:hover {
-            background: #45a049;
+        .control-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
         }
-        .music-btn:disabled {
+        .control-btn:disabled {
             background: #666;
             cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+            opacity: 0.6;
         }
-        .debug-info {
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            color: #ff5555;
+        .control-btn.green {
+            background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
+        }
+        .control-btn.red {
+            background: linear-gradient(135deg, #f44336 0%, #c62828 100%);
+        }
+        .control-btn.blue {
+            background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+        }
+        .music-time {
+            text-align: center;
+            margin: 6px 0;
             font-size: 12px;
-            background: rgba(0,0,0,0.8);
-            padding: 8px;
-            border-radius: 5px;
-            max-width: 300px;
-            display: none;
+            color: #FFD700;
         }
-        .debug-toggle {
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+        .status-offline {
+            background: #f44336;
+            box-shadow: 0 0 8px #f44336;
+        }
+        .status-loading {
+            background: #ff9800;
+            box-shadow: 0 0 8px #ff9800;
+            animation: pulse 1s infinite;
+        }
+        .status-ready {
+            background: #4CAF50;
+            box-shadow: 0 0 8px #4CAF50;
+        }
+        .status-playing {
+            background: #2196F3;
+            box-shadow: 0 0 8px #2196F3;
+            animation: pulse 0.5s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        .upload-help {
+            margin-top: 10px;
+            padding: 8px;
+            background: rgba(255, 215, 0, 0.05);
+            border-radius: 5px;
+            border: 1px dashed rgba(255, 215, 0, 0.3);
+            font-size: 10px;
+            line-height: 1.3;
+        }
+        .upload-help a {
+            color: #4CAF50;
+            text-decoration: none;
+        }
+        .upload-help a:hover {
+            text-decoration: underline;
+        }
+        .mobile-warning {
+            display: none;
             position: fixed;
             top: 10px;
             left: 10px;
-            background: rgba(0,0,0,0.5);
-            color: white;
-            border: 1px solid rgba(255,255,255,0.3);
-            padding: 5px 10px;
+            right: 10px;
+            background: rgba(255, 215, 0, 0.2);
+            color: #FFD700;
+            padding: 8px;
             border-radius: 5px;
-            cursor: pointer;
-            font-size: 12px;
-            z-index: 1000;
+            font-size: 11px;
+            text-align: center;
+            border: 1px solid rgba(255, 215, 0, 0.5);
+            z-index: 101;
+        }
+        @media (max-width: 480px) {
+            .mobile-warning {
+                display: block;
+            }
         }
     </style>
 </head>
@@ -83,49 +170,262 @@
 
 <canvas id="canvas"></canvas>
 
-<div class="debug-toggle" onclick="toggleDebug()">显示调试信息</div>
-<div class="debug-info" id="debugInfo"></div>
+<div class="mobile-warning">
+    💡 提示：点击屏幕任意位置播放音乐和放烟花！
+</div>
 
-<div class="music-controls">
-    <div class="music-status" id="musicStatus">点击播放按钮开始音乐</div>
-    <div class="music-buttons">
-        <button class="music-btn" onclick="playMusic()" id="playBtn">播放音乐</button>
-        <button class="music-btn" onclick="pauseMusic()" id="pauseBtn">暂停</button>
-        <button class="music-btn" onclick="testMusic()">测试音频</button>
+<div class="control-panel">
+    <div class="panel-title">🎵 新年音乐控制台 🎆</div>
+    
+    <div class="music-info">
+        <span id="statusIndicator" class="status-indicator status-offline"></span>
+        <span id="musicStatus">音乐系统离线</span>
     </div>
-    <div id="musicTime">00:00 / 02:50</div>
+    
+    <div class="music-time" id="musicTime">--:-- / 02:50</div>
+    
+    <div class="music-buttons">
+        <button class="control-btn green" onclick="playMusic()" id="playBtn">▶️ 播放</button>
+        <button class="control-btn red" onclick="pauseMusic()" id="pauseBtn" disabled>⏸️ 暂停</button>
+        <button class="control-btn" onclick="tryLocalFile()" id="localBtn">📁 本地</button>
+        <button class="control-btn blue" onclick="useOnlineMusic()" id="onlineBtn">🌐 在线</button>
+    </div>
+    
+    <div class="upload-help">
+        <strong>音乐文件问题？</strong><br>
+        检查文件名：newyear-music.mp3<br>
+        <a href="https://github.com/cheng11422/newyear-2026/upload/main" target="_blank">重新上传文件</a>
+    </div>
 </div>
 
 <script>
-    // ====== 调试功能 ======
-    function debugLog(message) {
-        const debugInfo = document.getElementById('debugInfo');
-        debugInfo.innerHTML += new Date().toLocaleTimeString() + ': ' + message + '<br>';
-        console.log(message);
+    // ====== 音乐配置 ======
+    const MUSIC_CONFIG = {
+        localFiles: [
+            'newyear-music.mp3',
+            './newyear-music.mp3',
+            '/newyear-music.mp3',
+            'music.mp3',
+            'song.mp3'
+        ],
+        onlineSources: [
+            'https://assets.mixkit.co/music/preview/mixkit-happy-new-year-2026-1098.mp3',
+            'https://assets.mixkit.co/music/preview/mixkit-celebration-time-571.mp3',
+            'https://assets.mixkit.co/music/preview/mixkit-party-happy-people-428.mp3'
+        ]
+    };
+    
+    // ====== 状态管理 ======
+    const state = {
+        music: null,
+        isPlaying: false,
+        currentSource: null,
+        currentTime: 0,
+        duration: 170, // 2分50秒
+        volume: 0.7
+    };
+    
+    // ====== DOM 元素 ======
+    const elements = {
+        statusIndicator: document.getElementById('statusIndicator'),
+        musicStatus: document.getElementById('musicStatus'),
+        musicTime: document.getElementById('musicTime'),
+        playBtn: document.getElementById('playBtn'),
+        pauseBtn: document.getElementById('pauseBtn'),
+        localBtn: document.getElementById('localBtn'),
+        onlineBtn: document.getElementById('onlineBtn')
+    };
+    
+    // ====== 状态更新函数 ======
+    function updateStatus(status, message) {
+        elements.statusIndicator.className = 'status-indicator ' + status;
+        elements.musicStatus.textContent = message;
     }
     
-    function toggleDebug() {
-        const debugInfo = document.getElementById('debugInfo');
-        debugInfo.style.display = debugInfo.style.display === 'block' ? 'none' : 'block';
+    function updateButtons() {
+        elements.playBtn.disabled = !state.music || state.isPlaying;
+        elements.pauseBtn.disabled = !state.music || !state.isPlaying;
     }
     
-    // ====== 初始化画布 ======
+    function updateTime() {
+        if (!state.music) return;
+        
+        const current = Math.floor(state.music.currentTime);
+        const total = state.duration;
+        
+        if (current >= total) {
+            pauseMusic();
+            state.music.currentTime = 0;
+        }
+        
+        const formatTime = (seconds) => {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        };
+        
+        elements.musicTime.textContent = `${formatTime(current)} / ${formatTime(total)}`;
+    }
+    
+    // ====== 音乐控制函数 ======
+    function createAudioPlayer(src) {
+        // 清理旧的音频
+        if (state.music) {
+            state.music.pause();
+            state.music = null;
+        }
+        
+        updateStatus('status-loading', '加载音乐中...');
+        
+        const audio = new Audio();
+        audio.src = src;
+        audio.volume = state.volume;
+        audio.preload = 'auto';
+        
+        audio.addEventListener('canplaythrough', () => {
+            updateStatus('status-ready', '音乐准备就绪');
+            state.currentSource = src;
+            updateButtons();
+        });
+        
+        audio.addEventListener('play', () => {
+            state.isPlaying = true;
+            updateStatus('status-playing', '正在播放...');
+            updateButtons();
+            startTimeUpdater();
+        });
+        
+        audio.addEventListener('pause', () => {
+            state.isPlaying = false;
+            updateStatus('status-ready', '音乐已暂停');
+            updateButtons();
+            stopTimeUpdater();
+        });
+        
+        audio.addEventListener('error', (e) => {
+            updateStatus('status-offline', `加载失败: ${getAudioError(audio.error)}`);
+            state.music = null;
+            updateButtons();
+        });
+        
+        audio.addEventListener('ended', () => {
+            state.isPlaying = false;
+            updateStatus('status-ready', '播放完成');
+            updateButtons();
+            stopTimeUpdater();
+        });
+        
+        state.music = audio;
+        return audio;
+    }
+    
+    function getAudioError(error) {
+        if (!error) return '未知错误';
+        
+        switch(error.code) {
+            case error.MEDIA_ERR_ABORTED:
+                return '播放被中止';
+            case error.MEDIA_ERR_NETWORK:
+                return '网络错误';
+            case error.MEDIA_ERR_DECODE:
+                return '文件解码错误';
+            case error.MEDIA_ERR_SRC_NOT_SUPPORTED:
+                return '文件格式不支持';
+            default:
+                return '加载失败';
+        }
+    }
+    
+    function playMusic() {
+        if (!state.music) {
+            tryLocalFile();
+            return;
+        }
+        
+        state.music.play().catch(error => {
+            updateStatus('status-offline', '需要用户点击才能播放');
+        });
+    }
+    
+    function pauseMusic() {
+        if (state.music) {
+            state.music.pause();
+        }
+    }
+    
+    // ====== 时间更新器 ======
+    let timeUpdater = null;
+    
+    function startTimeUpdater() {
+        stopTimeUpdater();
+        timeUpdater = setInterval(updateTime, 500);
+    }
+    
+    function stopTimeUpdater() {
+        if (timeUpdater) {
+            clearInterval(timeUpdater);
+            timeUpdater = null;
+        }
+    }
+    
+    // ====== 音乐源选择 ======
+    function tryLocalFile() {
+        updateStatus('status-loading', '尝试加载本地文件...');
+        
+        let tried = 0;
+        
+        function tryNextFile() {
+            if (tried >= MUSIC_CONFIG.localFiles.length) {
+                updateStatus('status-offline', '本地文件失败，尝试在线音乐');
+                setTimeout(() => useOnlineMusic(), 1000);
+                return;
+            }
+            
+            const file = MUSIC_CONFIG.localFiles[tried];
+            const audio = createAudioPlayer(file);
+            audio.load();
+            
+            setTimeout(() => {
+                if (state.music && state.music.readyState === 0) {
+                    tried++;
+                    tryNextFile();
+                }
+            }, 2000);
+            
+            tried++;
+        }
+        
+        tryNextFile();
+    }
+    
+    function useOnlineMusic() {
+        updateStatus('status-loading', '加载在线音乐...');
+        
+        const onlineSrc = MUSIC_CONFIG.onlineSources[0];
+        const audio = createAudioPlayer(onlineSrc);
+        audio.load();
+        
+        elements.onlineBtn.innerHTML = '✓ 在线';
+        setTimeout(() => {
+            elements.onlineBtn.disabled = false;
+            elements.onlineBtn.innerHTML = '🌐 在线';
+        }, 5000);
+    }
+    
+    // ====== 烟花系统 - 修改文字颜色为白色 ======
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
     
     let width = canvas.width = window.innerWidth;
     let height = canvas.height = window.innerHeight;
     
-    // 配置
     const particleSize = 3;
     const particleGap = 6;
     
     let particles = [];
     let fireworks = [];
-    let musicStarted = false;
-    let audioContextInitialized = false;
     
-    // 祝福语
+    // 祝福语 - 文字颜色改为白色
     const textSequence = [
         { text: "再见 2025", time: 2500 },
         { text: "3", time: 1000 },
@@ -147,222 +447,15 @@
     let currentStep = 0;
     let lastStepTime = Date.now();
     let isInitialized = false;
-
-    // ====== 音乐系统 ======
-    const musicStatus = document.getElementById('musicStatus');
-    const musicTime = document.getElementById('musicTime');
-    const playBtn = document.getElementById('playBtn');
-    const pauseBtn = document.getElementById('pauseBtn');
     
-    // 尝试多个可能的音乐文件路径
-    const musicFiles = [
-        'newyear-music.mp3',
-        'https://raw.githubusercontent.com/cheng11422/newyear-2026/main/newyear-music.mp3',
-        'newyear-song.mp3',
-        './newyear-music.mp3',
-        '/newyear-music.mp3'
-    ];
-    
-    let currentMusicIndex = 0;
-    let bgMusic = null;
-    
-    // 初始化音频
-    function initAudio() {
-        if (bgMusic) {
-            bgMusic.pause();
-            bgMusic = null;
-        }
-        
-        const musicFile = musicFiles[currentMusicIndex];
-        debugLog(`尝试加载音乐: ${musicFile}`);
-        
-        bgMusic = new Audio();
-        bgMusic.src = musicFile;
-        bgMusic.volume = 0.7;
-        bgMusic.preload = 'auto';
-        
-        // 设置音频事件监听器
-        bgMusic.addEventListener('error', function(e) {
-            debugLog(`音乐加载失败: ${musicFile}`);
-            debugLog(`错误类型: ${bgMusic.error ? bgMusic.error.code : '未知错误'}`);
-            
-            // 尝试下一个文件
-            currentMusicIndex++;
-            if (currentMusicIndex < musicFiles.length) {
-                setTimeout(initAudio, 500);
-            } else {
-                musicStatus.innerHTML = '❌ 无法加载音乐文件<br>请检查文件名是否正确';
-                musicStatus.style.color = '#ff5555';
-                playBtn.disabled = true;
-            }
-        });
-        
-        bgMusic.addEventListener('canplaythrough', function() {
-            debugLog(`音乐可以播放: ${musicFile}`);
-            musicStatus.innerHTML = '✅ 音乐加载成功<br>点击播放按钮开始';
-            musicStatus.style.color = '#4CAF50';
-            playBtn.disabled = false;
-            pauseBtn.disabled = true;
-        });
-        
-        bgMusic.addEventListener('play', function() {
-            debugLog('音乐开始播放');
-            musicStatus.innerHTML = '▶️ 正在播放...';
-            musicStatus.style.color = '#4CAF50';
-            playBtn.disabled = true;
-            pauseBtn.disabled = false;
-            musicStarted = true;
-            startMusicTimer();
-        });
-        
-        bgMusic.addEventListener('pause', function() {
-            debugLog('音乐已暂停');
-            musicStatus.innerHTML = '⏸️ 音乐已暂停';
-            musicStatus.style.color = '#ff9800';
-            playBtn.disabled = false;
-            pauseBtn.disabled = true;
-        });
-        
-        bgMusic.addEventListener('ended', function() {
-            debugLog('音乐播放结束');
-            musicStatus.innerHTML = '⏹️ 播放完成';
-            musicStarted = false;
-            stopMusicTimer();
-        });
-        
-        // 尝试加载
-        bgMusic.load();
-    }
-    
-    // 音乐计时器
-    let musicTimer = null;
-    const MUSIC_DURATION = 170; // 2分50秒
-    
-    function startMusicTimer() {
-        stopMusicTimer();
-        musicTimer = setInterval(updateMusicTime, 500);
-        updateMusicTime();
-    }
-    
-    function stopMusicTimer() {
-        if (musicTimer) {
-            clearInterval(musicTimer);
-            musicTimer = null;
-        }
-    }
-    
-    function updateMusicTime() {
-        if (!bgMusic) return;
-        
-        const current = Math.floor(bgMusic.currentTime);
-        const total = MUSIC_DURATION;
-        
-        if (current >= total) {
-            bgMusic.pause();
-            bgMusic.currentTime = 0;
-            musicTime.textContent = '00:00 / 02:50';
-            return;
-        }
-        
-        const formatTime = (seconds) => {
-            const mins = Math.floor(seconds / 60);
-            const secs = Math.floor(seconds % 60);
-            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-        };
-        
-        musicTime.textContent = `${formatTime(current)} / ${formatTime(total)}`;
-    }
-    
-    // 播放音乐
-    function playMusic() {
-        if (!bgMusic) {
-            initAudio();
-            return;
-        }
-        
-        // 解锁音频上下文（针对Chrome等浏览器的限制）
-        unlockAudioContext();
-        
-        bgMusic.play().catch(error => {
-            debugLog(`播放失败: ${error.message}`);
-            musicStatus.innerHTML = '⚠️ 需要用户交互<br>请先点击屏幕任意位置';
-            musicStatus.style.color = '#ff9800';
-            
-            // 显示错误详情
-            if (error.name === 'NotAllowedError') {
-                musicStatus.innerHTML += '<br>浏览器阻止自动播放';
-            }
-        });
-    }
-    
-    // 暂停音乐
-    function pauseMusic() {
-        if (bgMusic && !bgMusic.paused) {
-            bgMusic.pause();
-        }
-    }
-    
-    // 解锁音频上下文（解决Chrome的自动播放限制）
-    function unlockAudioContext() {
-        if (audioContextInitialized) return;
-        
-        // 创建一个静音音频并播放，以解锁音频上下文
-        const unlockAudio = () => {
-            const silentAudio = new Audio();
-            silentAudio.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEAQB8AAEAfAAABAAgAZGF0YQ';
-            silentAudio.volume = 0;
-            
-            silentAudio.play().then(() => {
-                debugLog('音频上下文已解锁');
-                silentAudio.pause();
-                audioContextInitialized = true;
-            }).catch(error => {
-                debugLog(`解锁音频上下文失败: ${error}`);
-            });
-        };
-        
-        // 需要用户交互后才能解锁
-        document.addEventListener('click', unlockAudio, { once: true });
-        document.addEventListener('touchstart', unlockAudio, { once: true });
-        document.addEventListener('keydown', unlockAudio, { once: true });
-    }
-    
-    // 测试音频（简单的蜂鸣声，确认音频系统工作）
-    function testMusic() {
-        debugLog('测试音频系统...');
-        const testAudio = new Audio();
-        testAudio.src = 'https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.wav';
-        testAudio.volume = 0.5;
-        
-        testAudio.play().then(() => {
-            debugLog('测试音频播放成功');
-            musicStatus.innerHTML = '🔊 音频系统正常';
-            setTimeout(() => {
-                if (musicStatus.innerHTML === '🔊 音频系统正常') {
-                    musicStatus.innerHTML = '点击播放按钮开始音乐';
-                }
-            }, 2000);
-        }).catch(error => {
-            debugLog(`测试音频失败: ${error}`);
-            musicStatus.innerHTML = '❌ 音频系统有问题';
-        });
-    }
-    
-    // ====== 烟花系统 ======
-    
-    window.addEventListener('resize', () => {
-        width = canvas.width = window.innerWidth;
-        height = canvas.height = window.innerHeight;
-        if (isInitialized) updateParticles(textSequence[currentStep].text);
-    });
-
+    // 粒子类 - 修改粒子颜色为白色
     class Particle {
         constructor(x, y) {
             this.x = Math.random() * width;
             this.y = Math.random() * height;
             this.targetX = x;
             this.targetY = y;
-            this.color = `hsl(${(currentStep * 30) % 360}, 100%, 70%)`;
+            this.color = '#FFFFFF'; // 改为白色
             this.size = particleSize;
         }
         
@@ -380,7 +473,8 @@
             ctx.fill();
         }
     }
-
+    
+    // 烟花类
     class Firework {
         constructor(x, y) {
             this.x = x || Math.random() * width;
@@ -397,8 +491,7 @@
                 this.y -= this.speed;
                 if (this.y <= this.targetY) {
                     this.explode();
-                    // 播放音效
-                    if (musicStarted) {
+                    if (state.isPlaying) {
                         playFireSound();
                     }
                 }
@@ -446,23 +539,21 @@
             }
         }
     }
-
-    function createFirework(x, y) {
-        fireworks.push(new Firework(x, y));
-    }
     
     // 烟花音效
     function playFireSound() {
         try {
             const fireSound = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-firework-explosion-3097.mp3');
-            fireSound.volume = 0.3;
+            fireSound.volume = 0.2;
             fireSound.play().catch(() => {});
-        } catch (e) {
-            // 静默失败
-        }
+        } catch (e) {}
     }
-
-    // ====== 文字系统 ======
+    
+    function createFirework(x, y) {
+        fireworks.push(new Firework(x, y));
+    }
+    
+    // 文字粒子系统 - 修改文字颜色为白色
     function createTextParticles(text) {
         const offCanvas = document.createElement('canvas');
         const offCtx = offCanvas.getContext('2d');
@@ -473,7 +564,7 @@
         if (text.length > 4) fontSize *= 0.7;
 
         offCtx.font = `bold ${fontSize}px Microsoft YaHei`;
-        offCtx.fillStyle = 'white';
+        offCtx.fillStyle = '#FFFFFF'; // 改为白色
         offCtx.textAlign = 'center';
         offCtx.textBaseline = 'middle';
         offCtx.fillText(text, width / 2, height / 2);
@@ -492,7 +583,7 @@
         
         return targets;
     }
-
+    
     function updateParticles(text) {
         const targets = createTextParticles(text);
         
@@ -506,7 +597,7 @@
             if (targets[i]) {
                 p.targetX = targets[i].x;
                 p.targetY = targets[i].y;
-                p.color = `hsl(${(currentStep * 30) % 360}, 100%, 70%)`;
+                p.color = '#FFFFFF'; // 确保粒子颜色为白色
             }
         });
         
@@ -514,10 +605,9 @@
             particles.splice(targets.length);
         }
     }
-
-    // ====== 主循环 ======
+    
+    // 主动画循环
     function animate() {
-        // 淡出效果
         ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
         ctx.fillRect(0, 0, width, height);
         
@@ -547,7 +637,7 @@
         });
         
         // 随机烟花
-        if (Math.random() < 0.03 && musicStarted) {
+        if (Math.random() < 0.03 && state.isPlaying) {
             createFirework();
         }
         
@@ -556,8 +646,8 @@
         
         requestAnimationFrame(animate);
     }
-
-    // ====== 初始化 ======
+    
+    // 初始化
     function init() {
         updateParticles(textSequence[0].text);
         isInitialized = true;
@@ -569,37 +659,42 @@
         
         animate();
     }
-
-    // ====== 启动 ======
+    
+    // ====== 页面启动 ======
     window.addEventListener('load', function() {
-        debugLog('页面加载完成');
+        // 初始化烟花系统
+        setTimeout(init, 500);
         
-        // 初始化音频
-        initAudio();
+        // 自动尝试加载本地音乐
+        setTimeout(() => {
+            tryLocalFile();
+        }, 1000);
         
-        // 点击屏幕任意位置可以触发音频
+        // 点击屏幕控制
         canvas.addEventListener('click', function(e) {
-            if (!musicStarted) {
+            if (!state.isPlaying && state.music) {
                 playMusic();
             }
             createFirework(e.clientX, e.clientY);
         });
         
-        // 启动动画
-        setTimeout(init, 500);
+        // 窗口大小调整
+        window.addEventListener('resize', () => {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            if (isInitialized) updateParticles(textSequence[currentStep].text);
+        });
         
-        // 显示帮助信息
-        setTimeout(() => {
-            debugLog('1. 点击"播放音乐"按钮');
-            debugLog('2. 如果失败，点击"测试音频"');
-            debugLog('3. 点击屏幕放烟花');
-        }, 1000);
+        // 触摸事件支持
+        canvas.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            if (!state.isPlaying && state.music) {
+                playMusic();
+            }
+            const touch = e.touches[0];
+            createFirework(touch.clientX, touch.clientY);
+        });
     });
-    
-    // 全局导出函数供按钮使用
-    window.playMusic = playMusic;
-    window.pauseMusic = pauseMusic;
-    window.testMusic = testMusic;
 </script>
 </body>
 </html>
