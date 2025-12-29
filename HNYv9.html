@@ -46,9 +46,9 @@
     let particles = [];
     let fireworks = [];
     
-    // 精简后的新年祝福语序列
+    // 更新后的新年祝福语序列
     const textSequence = [
-        { text: "再见 2025", time: 3500 },     // 4秒
+        { text: "再见 2025", time: 4000 },     // 4秒
         { text: "3", time: 3000 },            // 3秒
         { text: "2", time: 3000 },            // 3秒
         { text: "1", time: 3500 },            // 3.5秒
@@ -68,12 +68,9 @@
         { text: "喜气洋洋", time: 4000 },     // 4秒
         { text: "2026 一切顺利", time: 5000 }, // 5秒
         { text: "新年快乐", time: 8000 }      // 8秒
-        
-        // 回到开始
-        { text: "2026", time: 3000 }
     ];
     
-    // 总时长约 60 秒
+    // 总时长约 75 秒
     
     let currentStep = 0;
     let lastStepTime = Date.now();
