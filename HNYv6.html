@@ -54,7 +54,7 @@
     
     // 使用你调整的时间设置
     const textSequence = [
-        { text: "再见 2025", time: 4000 },     // 4秒
+        { text: "再见 2025", time: 3500 },     // 4秒
         { text: "3", time: 3000 },            // 3秒
         { text: "2", time: 3000 },            // 3秒
         { text: "1", time: 3500 },            // 3.5秒
@@ -101,7 +101,6 @@
                 this.x = Math.random() * width;
             }
             
-            // 星光闪烁效果
             this.brightness = 0.5 + Math.sin(Date.now() * 0.002 + this.x) * 0.3;
         }
         
@@ -115,7 +114,7 @@
     
     let stars = Array(100).fill().map(() => new Star());
     
-    // 改进的烟花粒子类
+    // 烟花粒子类
     class FireworkParticle {
         constructor(x, y, color) {
             this.x = x;
@@ -149,7 +148,7 @@
         }
     }
     
-    // 改进的烟花类
+    // 烟花类
     class Firework {
         constructor(x, y) {
             this.x = x || Math.random() * width;
@@ -187,7 +186,6 @@
         explode() {
             this.exploded = true;
             
-            const colorCount = 3;
             const colors = [
                 this.color,
                 `hsl(${(parseInt(this.color.split('(')[1].split(',')[0]) + 60) % 360}, 100%, 70%)`,
@@ -245,55 +243,54 @@
         }
     }
     
-    // 改进的文字粒子类 - 恢复漂亮的淡入效果
+    // 重新加入漂亮的淡入效果 - 这才是关键
     class TextParticle {
-        constructor(targetX, targetY) {
+        constructor(targetX, targetY, startAlpha = 0) {
             this.x = Math.random() * width;
             this.y = Math.random() * height;
             this.targetX = targetX;
             this.targetY = targetY;
-            this.speed = Math.random() * 0.05 + 0.02; // 适当的速度
+            this.speed = Math.random() * 0.04 + 0.02;
             this.size = Math.random() * 2 + 1.5;
             this.color = '#FFFFFF';
-            this.twinkle = Math.random() * Math.PI * 2;
-            this.twinkleSpeed = Math.random() * 0.03 + 0.01;
-            this.alpha = 0;
-            this.fadeInSpeed = Math.random() * 0.05 + 0.02; // 淡入速度
+            this.alpha = startAlpha; // 从透明开始
+            this.fadeInSpeed = Math.random() * 0.03 + 0.02; // 淡入速度
             this.hasArrived = false;
-            this.delay = Math.random() * 0.5; // 添加随机延迟，让淡入更有层次
+            this.distance = 0;
+            this.originalSize = this.size;
+            
+            // 计算初始距离
+            const dx = this.targetX - this.x;
+            const dy = this.targetY - this.y;
+            this.distance = Math.sqrt(dx * dx + dy * dy);
         }
         
         update() {
-            if (this.delay > 0) {
-                this.delay -= 0.016; // 每帧减少延迟
-                return;
-            }
-            
             const dx = this.targetX - this.x;
             const dy = this.targetY - this.y;
             const distance = Math.sqrt(dx * dx + dy * dy);
             
-            if (distance > 2) {
+            if (distance > 1) {
                 this.x += dx * this.speed;
                 this.y += dy * this.speed;
+                
+                // 在移动过程中逐渐增加透明度 - 这才是flash in效果
+                if (this.alpha < 1) {
+                    // 根据距离比例计算透明度，越接近目标越亮
+                    const progress = 1 - (distance / this.distance);
+                    this.alpha = progress * 0.7; // 移动过程中最大0.7透明度
+                }
             } else {
                 this.hasArrived = true;
-                // 到达后开始淡入
+                // 到达后完全显示
                 if (this.alpha < 1) {
                     this.alpha += this.fadeInSpeed;
                     if (this.alpha > 1) this.alpha = 1;
                 }
             }
             
-            // 闪烁效果
-            this.twinkle += this.twinkleSpeed;
-            const scale = 0.8 + Math.sin(this.twinkle) * 0.2;
-            this.currentSize = this.size * scale;
-            
-            // 如果还没到达，也有轻微的透明度
-            if (!this.hasArrived && this.alpha < 0.3) {
-                this.alpha = 0.3;
-            }
+            // 轻微的闪烁效果
+            this.size = this.originalSize * (0.9 + Math.sin(Date.now() * 0.003) * 0.1);
         }
         
         draw() {
@@ -303,14 +300,14 @@
             ctx.globalAlpha = this.alpha;
             ctx.fillStyle = this.color;
             
-            // 添加发光效果
-            if (this.hasArrived && this.alpha > 0.7) {
-                ctx.shadowColor = 'rgba(255, 255, 255, 0.5)';
-                ctx.shadowBlur = 3;
+            // 如果已经完全显示，添加发光效果
+            if (this.alpha > 0.8) {
+                ctx.shadowColor = 'rgba(255, 255, 255, 0.6)';
+                ctx.shadowBlur = 4;
             }
             
             ctx.beginPath();
-            ctx.arc(this.x, this.y, this.currentSize || this.size, 0, Math.PI * 2);
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
             ctx.fill();
             ctx.restore();
         }
@@ -333,25 +330,41 @@
         }
     }
     
-    // 添加更漂亮的淡入淡出过渡
+    // 改进的过渡效果，有淡入淡出
     function transitionToText(text) {
         isTransitioning = true;
         
-        // 首先让现有粒子淡出
-        particles.forEach(p => {
-            p.fadeOut = true;
-            p.fadeOutSpeed = Math.random() * 0.03 + 0.01;
-        });
+        // 先让现有粒子快速淡出
+        const fadeOutDuration = 400;
+        const fadeOutStart = Date.now();
         
-        // 等待粒子淡出后创建新粒子
-        setTimeout(() => {
-            updateTextParticles(text);
+        function fadeOutParticles() {
+            const elapsed = Date.now() - fadeOutStart;
+            const progress = Math.min(elapsed / fadeOutDuration, 1);
             
-            // 给新粒子一点时间聚集
-            setTimeout(() => {
-                isTransitioning = false;
-            }, 800);
-        }, 600);
+            particles.forEach(p => {
+                p.alpha = 1 - progress; // 从1淡出到0
+            });
+            
+            if (progress < 1) {
+                requestAnimationFrame(fadeOutParticles);
+            } else {
+                // 淡出完成后创建新粒子
+                updateTextParticles(text);
+                
+                // 新粒子全部从透明开始
+                particles.forEach(p => {
+                    p.alpha = 0;
+                });
+                
+                // 等待新粒子淡入
+                setTimeout(() => {
+                    isTransitioning = false;
+                }, 1000);
+            }
+        }
+        
+        fadeOutParticles();
     }
     
     function createTextParticles(text) {
@@ -363,21 +376,19 @@
         let fontSize = Math.min(180, width / 7);
         if (text.length > 4) fontSize *= 0.75;
         
-        // 创建更漂亮的文字效果
+        // 创建文字效果
         offCtx.font = `bold ${fontSize}px 'Microsoft YaHei', 'PingFang SC', sans-serif`;
         offCtx.fillStyle = '#FFFFFF';
         offCtx.textAlign = 'center';
         offCtx.textBaseline = 'middle';
         
-        // 文字发光效果
-        offCtx.shadowColor = 'rgba(255, 215, 0, 0.4)';
-        offCtx.shadowBlur = 20;
-        offCtx.shadowOffsetX = 0;
-        offCtx.shadowOffsetY = 0;
+        // 文字发光
+        offCtx.shadowColor = 'rgba(255, 215, 0, 0.5)';
+        offCtx.shadowBlur = 25;
         offCtx.fillText(text, width / 2, height / 2);
         
         const imageData = offCtx.getImageData(0, 0, width, height).data;
-        const particleGap = text.length <= 4 ? 3 : 4; // 更密集的粒子
+        const particleGap = text.length <= 4 ? 3 : 4;
         const targets = [];
         
         for (let y = 0; y < height; y += particleGap) {
@@ -387,9 +398,8 @@
                     targets.push({ 
                         x, 
                         y,
-                        // 添加随机偏移，让文字更有层次感
-                        offsetX: (Math.random() - 0.5) * 8,
-                        offsetY: (Math.random() - 0.5) * 8
+                        offsetX: (Math.random() - 0.5) * 6,
+                        offsetY: (Math.random() - 0.5) * 6
                     });
                 }
             }
@@ -403,7 +413,8 @@
         
         particles = [];
         targets.forEach(target => {
-            particles.push(new TextParticle(target.x + target.offsetX, target.y + target.offsetY));
+            // 新粒子从透明开始
+            particles.push(new TextParticle(target.x + target.offsetX, target.y + target.offsetY, 0));
         });
     }
     
@@ -435,13 +446,13 @@
     
     // 主动画循环
     function animate() {
-        // 创建渐变背景
+        // 渐变背景
         const gradient = ctx.createRadialGradient(
             width / 2, height / 2, 0,
             width / 2, height / 2, Math.max(width, height) / 2
         );
-        gradient.addColorStop(0, 'rgba(15, 15, 35, 0.4)');
-        gradient.addColorStop(1, 'rgba(5, 5, 25, 0.9)');
+        gradient.addColorStop(0, 'rgba(10, 10, 30, 0.4)');
+        gradient.addColorStop(1, 'rgba(0, 0, 20, 0.9)');
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, width, height);
         
@@ -458,10 +469,9 @@
             lastStepTime = now;
             transitionToText(textSequence[currentStep].text);
             
-            // 根据文字内容调整烟花效果
+            // 放烟花
             const currentText = textSequence[currentStep].text;
             if (currentText === "2026" || currentText === "新年快乐") {
-                // 重要时刻放更多烟花
                 for (let i = 0; i < 4; i++) {
                     setTimeout(() => {
                         createFirework(
@@ -471,7 +481,6 @@
                     }, i * 500);
                 }
             } else if (currentText === "1") {
-                // 倒数1的时候特殊效果
                 for (let i = 0; i < 6; i++) {
                     setTimeout(() => {
                         createFirework(
@@ -481,7 +490,6 @@
                     }, i * 250);
                 }
             } else if (currentText === "3" || currentText === "2") {
-                // 倒数3和2时也有烟花
                 for (let i = 0; i < 2; i++) {
                     setTimeout(() => {
                         createFirework(
@@ -491,7 +499,6 @@
                     }, i * 400);
                 }
             } else {
-                // 普通切换放少量烟花
                 for (let i = 0; i < 2; i++) {
                     setTimeout(() => {
                         createFirework(
@@ -504,14 +511,7 @@
         }
         
         // 更新和绘制文字粒子
-        particles.forEach((p, index) => {
-            if (p.fadeOut) {
-                p.alpha -= (p.fadeOutSpeed || 0.04);
-                if (p.alpha <= 0) {
-                    particles.splice(index, 1);
-                    return;
-                }
-            }
+        particles.forEach(p => {
             p.update();
             p.draw();
         });
@@ -526,12 +526,12 @@
         updateSparkles();
         drawSparkles();
         
-        // 适中的随机烟花频率
+        // 随机烟花
         if (Math.random() < 0.003 && !isTransitioning) {
             createFirework();
         }
         
-        // 清理完成的烟花
+        // 清理烟花
         fireworks = fireworks.filter(f => !f.exploded || f.particles.length > 5);
         
         requestAnimationFrame(animate);
@@ -542,7 +542,7 @@
         updateTextParticles(textSequence[0].text);
         isInitialized = true;
         
-        // 初始烟花 - 给用户时间先看到文字
+        // 初始烟花
         setTimeout(() => {
             createFirework(width * 0.3, height);
             setTimeout(() => createFirework(width * 0.7, height), 800);
@@ -560,7 +560,7 @@
             createFirework(e.clientX, e.clientY);
         });
         
-        // 触摸事件支持
+        // 触摸事件
         canvas.addEventListener('touchstart', function(e) {
             e.preventDefault();
             const touch = e.touches[0];
