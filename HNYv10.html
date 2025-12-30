@@ -85,7 +85,7 @@
             this.targetX = x;
             this.targetY = y;
             this.color = `hsl(0, 0%, ${Math.random() * 30 + 80}%)`;
-            this.size = 2.5; // 稍微减小粒子大小
+            this.size = 2; // 减小粒子大小
         }
         
         update() {
@@ -132,7 +132,7 @@
         
         explode() {
             this.exploded = true;
-            for (let i = 0; i < 40; i++) { // 减少烟花粒子数量
+            for (let i = 0; i < 30; i++) { // 进一步减少烟花粒子数量
                 const angle = Math.random() * Math.PI * 2;
                 const speed = Math.random() * 3 + 2;
                 this.particles.push({
@@ -142,7 +142,7 @@
                     vy: Math.sin(angle) * speed,
                     alpha: 1,
                     color: this.color,
-                    size: Math.random() * 1.5 + 0.8,
+                    size: Math.random() * 1.2 + 0.6, // 减小烟花粒子大小
                     update: function() {
                         this.x += this.vx;
                         this.y += this.vy;
@@ -166,7 +166,7 @@
             if (!this.exploded) {
                 ctx.fillStyle = this.color;
                 ctx.beginPath();
-                ctx.arc(this.x, this.y, 2.5, 0, Math.PI * 2);
+                ctx.arc(this.x, this.y, 2, 0, Math.PI * 2); // 减小烟花头大小
                 ctx.fill();
             } else {
                 this.particles.forEach(p => p.draw());
@@ -176,25 +176,15 @@
     
     let fireworks = [];
     
-    // 智能字体大小计算
+    // 统一的较小字体大小
     function getFontSizeForText(text) {
-        const isMobile = window.innerWidth < 768;
-        
-        if (isMobile) {
-            // 手机端：更小的字体
-            if (text.length <= 4) return 80;  // 短词
-            if (text.length <= 8) return 60;  // 中等长度
-            if (text.length <= 12) return 50; // 较长
-            if (text.length <= 16) return 40; // 长句
-            return 35; // 超长句子
-        } else {
-            // 桌面端：稍大的字体
-            if (text.length <= 4) return 150;
-            if (text.length <= 8) return 120;
-            if (text.length <= 12) return 100;
-            if (text.length <= 16) return 80;
-            return 70;
-        }
+        // 不再区分桌面和手机，统一使用小字体
+        if (text.length <= 4) return 70;    // 短词（如"2026"）
+        if (text.length <= 6) return 60;    // 较短句子
+        if (text.length <= 10) return 50;   // 中等长度
+        if (text.length <= 14) return 42;   // 较长句子
+        if (text.length <= 18) return 36;   // 很长句子
+        return 32;                          // 超长句子
     }
     
     // 创建文字粒子
@@ -205,22 +195,22 @@
         tempCanvas.width = width;
         tempCanvas.height = height;
         
-        // 使用智能字体大小
-        const fontSize = getFontSizeForText(text);
+        // 使用小字体
+        let fontSize = getFontSizeForText(text);
         
-        // 测试是否适合屏幕
+        // 确保文字不会超出屏幕
         tempCtx.font = `bold ${fontSize}px Microsoft YaHei`;
         const textMetrics = tempCtx.measureText(text);
         const textWidth = textMetrics.width;
         
-        // 如果文字太宽，进一步减小字体
-        let finalFontSize = fontSize;
-        if (textWidth > width * 0.9) {
-            finalFontSize = fontSize * (width * 0.9) / textWidth;
-            console.log(`文字太宽，调整字体大小: ${fontSize}px -> ${finalFontSize}px`);
+        // 如果文字超出屏幕90%，进一步减小字体
+        const maxWidth = width * 0.9;
+        if (textWidth > maxWidth) {
+            fontSize = fontSize * (maxWidth / textWidth);
+            console.log(`文字太宽，调整字体大小到: ${fontSize}px`);
         }
         
-        tempCtx.font = `bold ${finalFontSize}px Microsoft YaHei`;
+        tempCtx.font = `bold ${fontSize}px Microsoft YaHei`;
         tempCtx.fillStyle = 'white';
         tempCtx.textAlign = 'center';
         tempCtx.textBaseline = 'middle';
@@ -229,8 +219,8 @@
         const imageData = tempCtx.getImageData(0, 0, width, height).data;
         const targets = [];
         
-        // 根据文字长度调整粒子间距
-        const particleSpacing = text.length > 10 ? 5 : 6; // 长句子粒子更密集
+        // 使用更小的粒子间距，让文字更清晰
+        const particleSpacing = 4; // 减小粒子间距
         
         for (let y = 0; y < height; y += particleSpacing) {
             for (let x = 0; x < width; x += particleSpacing) {
@@ -247,7 +237,7 @@
             particles.push(new Particle(target.x, target.y));
         });
         
-        console.log(`显示文字: "${text}", 字体大小: ${finalFontSize}px, 粒子数量: ${particles.length}`);
+        console.log(`显示文字: "${text}", 字体大小: ${Math.round(fontSize)}px, 粒子数量: ${particles.length}`);
     }
     
     // 主动画循环
