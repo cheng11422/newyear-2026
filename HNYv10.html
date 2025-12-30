@@ -47,34 +47,34 @@
     
     // 简单祝福语
     const texts = [
-        "再见 2025",
-        "你的2025年可能并不容易",
-        "但我相信 2026 年",
-        "不论家庭还是生活",
-        "你都会越来越顺利",
-        "愿 2026 年",
-        "你被温柔以待",
-        "所求皆如愿",
-        "新的一年",
-        "愿你身体健康",
-        "家人平安",
-        "心中有光",
-        "2026",
-        "愿所有努力都有回报",
-        "所有等待都有结果",
-        "愿你所到之处皆是美好",
-        "所遇之人皆是善意",
-        "不管过去如何",
-        "2026 都是新的开始",
-        "有些东西我说不出口",
-        "但是你也知道了答案",
-        "你的感觉是对的",
-        "我没有向你往前的资格",
-        "2026 新年快乐"
+        { text: "再见 2025", time: 4000 },
+        { text: "你的2025年可能并不容易", time: 4000 },
+        { text: "但我相信 2026 年", time: 3500 },
+        { text: "不论家庭还是生活", time: 3500 },
+        { text: "你都会越来越顺利", time: 4000 },
+        { text: "愿 2026 年", time: 3500 },
+        { text: "你被温柔以待", time: 3500 },
+        { text: "所求皆如愿", time: 4000 },
+        { text: "新的一年", time: 3000 },
+        { text: "愿你身体健康", time: 3500 },
+        { text: "家人平安", time: 3500 },
+        { text: "心中有光", time: 4000 },
+        { text: "2026", time: 3500 },
+        { text: "愿所有努力都有回报", time: 4000 },
+        { text: "所有等待都有结果", time: 4000 },
+        { text: "愿你所到之处皆是美好", time: 4000 },
+        { text: "所遇之人皆是善意", time: 4000 },
+        { text: "不管过去如何", time: 3500 },
+        { text: "2026 都是新的开始", time: 4500 },
+        { text: "有些东西我说不出口", time: 4000 },
+        { text: "但是你也知道了答案", time: 4000 },
+        { text: "你的感觉是对的", time: 5000 },
+        { text: "我没有向你往前的资格", time: 4500 },
+        { text: "2026 新年快乐", time: 6000 }
     ];
     
-    let currentText = 0;
-    let lastChange = 0;
+    let currentTextIndex = 0;
+    let lastChangeTime = 0;
     let particles = [];
     
     // 简单粒子类
@@ -85,7 +85,7 @@
             this.targetX = x;
             this.targetY = y;
             this.color = `hsl(0, 0%, ${Math.random() * 30 + 80}%)`;
-            this.size = 3;
+            this.size = 2.5; // 稍微减小粒子大小
         }
         
         update() {
@@ -132,7 +132,7 @@
         
         explode() {
             this.exploded = true;
-            for (let i = 0; i < 50; i++) {
+            for (let i = 0; i < 40; i++) { // 减少烟花粒子数量
                 const angle = Math.random() * Math.PI * 2;
                 const speed = Math.random() * 3 + 2;
                 this.particles.push({
@@ -142,7 +142,7 @@
                     vy: Math.sin(angle) * speed,
                     alpha: 1,
                     color: this.color,
-                    size: Math.random() * 2 + 1,
+                    size: Math.random() * 1.5 + 0.8,
                     update: function() {
                         this.x += this.vx;
                         this.y += this.vy;
@@ -166,7 +166,7 @@
             if (!this.exploded) {
                 ctx.fillStyle = this.color;
                 ctx.beginPath();
-                ctx.arc(this.x, this.y, 3, 0, Math.PI * 2);
+                ctx.arc(this.x, this.y, 2.5, 0, Math.PI * 2);
                 ctx.fill();
             } else {
                 this.particles.forEach(p => p.draw());
@@ -176,6 +176,27 @@
     
     let fireworks = [];
     
+    // 智能字体大小计算
+    function getFontSizeForText(text) {
+        const isMobile = window.innerWidth < 768;
+        
+        if (isMobile) {
+            // 手机端：更小的字体
+            if (text.length <= 4) return 80;  // 短词
+            if (text.length <= 8) return 60;  // 中等长度
+            if (text.length <= 12) return 50; // 较长
+            if (text.length <= 16) return 40; // 长句
+            return 35; // 超长句子
+        } else {
+            // 桌面端：稍大的字体
+            if (text.length <= 4) return 150;
+            if (text.length <= 8) return 120;
+            if (text.length <= 12) return 100;
+            if (text.length <= 16) return 80;
+            return 70;
+        }
+    }
+    
     // 创建文字粒子
     function createTextParticles(text) {
         // 创建临时canvas来获取文字像素
@@ -184,14 +205,22 @@
         tempCanvas.width = width;
         tempCanvas.height = height;
         
-        // 根据文字长度设置字体大小
-        let fontSize = 120;
-        if (text.length <= 4) fontSize = 150;
-        if (text.length > 8) fontSize = 100;
-        if (text.length > 12) fontSize = 80;
-        if (window.innerWidth < 600) fontSize *= 0.6;
+        // 使用智能字体大小
+        const fontSize = getFontSizeForText(text);
         
+        // 测试是否适合屏幕
         tempCtx.font = `bold ${fontSize}px Microsoft YaHei`;
+        const textMetrics = tempCtx.measureText(text);
+        const textWidth = textMetrics.width;
+        
+        // 如果文字太宽，进一步减小字体
+        let finalFontSize = fontSize;
+        if (textWidth > width * 0.9) {
+            finalFontSize = fontSize * (width * 0.9) / textWidth;
+            console.log(`文字太宽，调整字体大小: ${fontSize}px -> ${finalFontSize}px`);
+        }
+        
+        tempCtx.font = `bold ${finalFontSize}px Microsoft YaHei`;
         tempCtx.fillStyle = 'white';
         tempCtx.textAlign = 'center';
         tempCtx.textBaseline = 'middle';
@@ -200,9 +229,11 @@
         const imageData = tempCtx.getImageData(0, 0, width, height).data;
         const targets = [];
         
-        // 每6个像素取一个点
-        for (let y = 0; y < height; y += 6) {
-            for (let x = 0; x < width; x += 6) {
+        // 根据文字长度调整粒子间距
+        const particleSpacing = text.length > 10 ? 5 : 6; // 长句子粒子更密集
+        
+        for (let y = 0; y < height; y += particleSpacing) {
+            for (let x = 0; x < width; x += particleSpacing) {
                 const index = (y * width + x) * 4;
                 if (imageData[index + 3] > 128) {
                     targets.push({ x, y });
@@ -215,6 +246,8 @@
         targets.forEach(target => {
             particles.push(new Particle(target.x, target.y));
         });
+        
+        console.log(`显示文字: "${text}", 字体大小: ${finalFontSize}px, 粒子数量: ${particles.length}`);
     }
     
     // 主动画循环
@@ -223,11 +256,12 @@
         ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
         ctx.fillRect(0, 0, width, height);
         
-        // 每3秒切换文字
-        if (timestamp - lastChange > 3000) {
-            currentText = (currentText + 1) % texts.length;
-            lastChange = timestamp;
-            createTextParticles(texts[currentText]);
+        // 根据设置的时间切换文字
+        const currentText = texts[currentTextIndex];
+        if (timestamp - lastChangeTime > currentText.time) {
+            currentTextIndex = (currentTextIndex + 1) % texts.length;
+            lastChangeTime = timestamp;
+            createTextParticles(texts[currentTextIndex].text);
             
             // 添加一些烟花
             for (let i = 0; i < 2; i++) {
@@ -268,19 +302,19 @@
         canvas.height = window.innerHeight;
         width = canvas.width;
         height = canvas.height;
-        createTextParticles(texts[currentText]);
+        createTextParticles(texts[currentTextIndex].text);
     });
     
     // 开始动画
     function startAnimation() {
         console.log("开始动画...");
         loading.style.display = 'none';
-        createTextParticles(texts[0]);
-        lastChange = performance.now();
+        createTextParticles(texts[0].text);
+        lastChangeTime = performance.now();
         requestAnimationFrame(animate);
         
         // 添加几个初始烟花
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < 2; i++) {
             setTimeout(() => {
                 fireworks.push(new SimpleFirework());
             }, i * 500);
